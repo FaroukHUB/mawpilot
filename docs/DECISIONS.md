@@ -116,3 +116,54 @@ récupérées depuis Supabase via les fonctions de recherche — jamais
 l'historique complet. Une supposition de l'IA ne devient jamais un souvenir
 sans confirmation explicite (`save_company_memory` uniquement sur demande ou
 confirmation).
+
+## D-014 · Les souvenirs ne dupliquent jamais les données opérationnelles
+
+**Date** : 2026-08-11 · **Statut** : exigé par l'utilisateur.
+`company_memories` est réservée aux **consignes, préférences et informations
+durables** (« toujours envoyer le rapport le vendredi avant 17h », « le
+contact technique préfère les captures d'écran », « le site tourne sous
+Shopify 2.0 »). Les tâches, temps passés, rapports et documents ne doivent
+**jamais** y être recopiés : l'IA les lit dans leurs tables d'origine via les
+fonctions de recherche. Raison : une copie diverge toujours de la source et
+produit des réponses fausses avec assurance.
+
+## D-015 · `store: false` côté OpenAI au MVP
+
+**Date** : 2026-08-11 · **Statut** : exigé par l'utilisateur.
+Les appels à la Responses API utilisent `store: false` : OpenAI ne conserve
+rien. Le contexte est reconstruit à chaque requête depuis Supabase (résumé
+roulant + derniers messages + données pertinentes).
+`ai_conversations.openai_conversation_id` reste facultatif et ne doit jamais
+être nécessaire au fonctionnement — il n'est qu'une optimisation éventuelle
+pour plus tard.
+
+## D-016 · Connecteurs externes : feuille de route post-MVP
+
+**Date** : 2026-08-11 · **Statut** : accepté comme cap, hors périmètre MVP.
+Extensions souhaitées, dans un ordre de valeur décroissant, chacune isolée
+derrière son propre module (`src/lib/connectors/<service>/`) afin de ne jamais
+alourdir le cœur de l'application :
+1. **Search Console / Analytics 4** (lecture) → analyse de performance et
+   création de tâches sur baisse détectée ;
+2. **Notifications** (web push / PWA) → briefing du matin, relances ;
+3. **Calendrier** (Google Calendar) → échéances et créneaux de travail ;
+4. **Email** (préparation de brouillons, jamais d'envoi automatique) ;
+5. **Organisation de documents** (rangement assisté des livrables).
+Règles communes : OAuth par service et par entreprise, jetons chiffrés côté
+serveur uniquement, lecture d'abord, **aucune action sortante sans
+confirmation explicite de l'utilisateur** (même règle que WhatsApp).
+Le MVP se contente d'indicateurs saisis manuellement dans les rapports.
+
+## D-017 · Déclencheurs planifiés (« l'app a l'initiative, l'IA a l'intelligence »)
+
+**Date** : 2026-08-11.
+L'API OpenAI ne peut rien déclencher d'elle-même : elle n'existe qu'entre une
+requête et sa réponse. La proactivité (briefing du matin, relance de saisie
+du temps, brouillon de rapport hebdomadaire, détection des prestations non
+facturées) vient donc de **déclencheurs applicatifs** — calculés à
+l'ouverture de l'application au MVP (D-006), puis via tâches planifiées côté
+hébergeur en extension. L'IA n'est appelée qu'au moment du déclenchement,
+pour rédiger ou interpréter. Aucun message n'est jamais envoyé à un client
+sans action de l'utilisateur.
+

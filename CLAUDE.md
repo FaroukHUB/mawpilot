@@ -38,7 +38,14 @@ transcription). Jamais l'ancienne Assistants API.
   - l'IA n'a jamais d'accès SQL direct : elle choisit parmi des fonctions dont les arguments sont validés avec Zod ;
   - toute action proposée par l'IA est prévisualisée et confirmée par l'utilisateur avant exécution ;
   - en cas d'ambiguïté (entreprise, tâche), l'IA demande une précision, jamais de choix silencieux ;
-  - les rapports n'inventent jamais un fait : données enregistrées et synthèse IA clairement distinguées.
+  - les rapports n'inventent jamais un fait : données enregistrées et synthèse IA clairement distinguées ;
+  - **Supabase est la source de vérité de la mémoire** : `ai_conversations`, `ai_messages`,
+    `company_memories` ; appels OpenAI en `store: false`, `openai_conversation_id` facultatif ;
+  - `company_memories` = consignes, préférences et informations durables uniquement —
+    jamais de copie des tâches, temps, rapports ou documents (lus dans leurs tables) ;
+  - un souvenir ne s'enregistre que sur demande explicite ou confirmation de l'utilisateur ;
+  - contexte fenêtré : consigne + résumé roulant + derniers messages + données pertinentes,
+    jamais l'historique complet.
 - **WhatsApp** : partage assisté manuel uniquement au MVP (lien `wa.me` pour un numéro
   international validé, feuille de partage native, copier-coller). Jamais d'envoi
   automatique, jamais de rapport marqué « envoyé » sans confirmation de l'utilisateur.

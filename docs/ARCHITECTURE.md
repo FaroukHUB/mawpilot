@@ -87,14 +87,30 @@ squelette vide) ; ce document décrit la cible.
     coûts et erreurs ;
   - le résumé roulant est régénéré côté serveur au fil de la conversation et
     stocké sur `ai_conversations.summary` ;
-  - la Responses API (voire la Conversations API) peut optimiser la
-    continuité, mais `openai_conversation_id` n'est qu'un cache : sa perte ne
-    casse rien ;
+  - `company_memories` ne contient **que** consignes, préférences et
+    informations durables ; les données opérationnelles (tâches, temps,
+    rapports, documents) restent lues dans leurs tables — jamais dupliquées ;
+  - appels OpenAI en `store: false` au MVP : rien n'est conservé côté OpenAI.
+    `openai_conversation_id` est facultatif et jamais nécessaire ;
   - l'écriture d'un souvenir passe exclusivement par la fonction
     `save_company_memory`, sur demande explicite ou confirmation de
     l'utilisateur — jamais de mémorisation silencieuse.
 - **Fuseau et locale** : helpers uniques dans `src/lib/dates.ts`
   (`Europe/Paris`, `fr`). Stockage en UTC (`timestamptz`), affichage converti.
+
+## Extensions prévues après le MVP (voir D-016, D-017)
+
+Chaque connecteur externe vivra dans son propre module
+`src/lib/connectors/<service>/`, sans toucher au cœur de l'application :
+Search Console / Analytics 4 (lecture, analyse, création de tâches sur baisse
+détectée), notifications web push, calendrier, préparation d'emails,
+organisation de documents. Règles communes : OAuth par service, jetons côté
+serveur uniquement, lecture d'abord, **aucune action sortante sans
+confirmation de l'utilisateur**.
+
+La proactivité (briefing du matin, relances, brouillons de rapports) vient de
+déclencheurs applicatifs, jamais de l'IA elle-même : celle-ci n'existe
+qu'entre une requête et sa réponse.
 
 ## Contraintes d'environnement de développement
 

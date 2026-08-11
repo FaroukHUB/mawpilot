@@ -33,7 +33,9 @@ create table public.ai_conversations (
   -- company_id NULL = conversation globale (questions multi-entreprises)
   title text not null default 'Nouvelle conversation',
   summary text,                    -- résumé roulant maintenu par l'application
-  openai_conversation_id text,     -- cache facultatif (Conversations API)
+  openai_conversation_id text,     -- FACULTATIF : cache d'optimisation seulement.
+  -- Le MVP utilise store:false côté OpenAI et reconstruit le contexte depuis
+  -- Supabase. Ce champ ne doit jamais être nécessaire au fonctionnement.
   last_message_at timestamptz,
   is_archived boolean not null default false,
   created_at timestamptz not null default now(),
@@ -70,9 +72,12 @@ create table public.company_memories (
   updated_at timestamptz not null default now()
 );
 comment on table public.company_memories is
-  'Informations durables par entreprise. Une supposition de l''IA ne devient '
-  'jamais automatiquement un souvenir : enregistrement uniquement sur demande '
-  'explicite ou après confirmation (source/status le tracent).';
+  'Consignes, préférences et informations durables par entreprise. '
+  'NE DOIT PAS dupliquer les données opérationnelles (tâches, temps, rapports, '
+  'documents) : celles-ci sont toujours lues dans leurs tables d''origine. '
+  'Une supposition de l''IA ne devient jamais automatiquement un souvenir : '
+  'enregistrement uniquement sur demande explicite ou après confirmation '
+  '(source/status le tracent).';
 
 -- ---------------------------------------------------------------------------
 -- Triggers updated_at et index

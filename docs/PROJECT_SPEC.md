@@ -45,7 +45,7 @@ Toutes les tables métier : `user_id`, `created_at`, `updated_at`, RLS.
 | `report_schedules` | Planification | hebdo/mensuel, jour, heure, fuseau, canal par défaut, sections ; crée un rappel/brouillon, **jamais d'envoi automatique** |
 | `ai_conversations` | Conversations assistant | une globale (multi-entreprises, `company_id` NULL) ou une par entreprise ; résumé roulant ; id OpenAI = simple cache |
 | `ai_messages` | Historique des échanges | rôle, contenu, lien vers `ai_requests` ; conservé localement |
-| `company_memories` | Mémoire durable par entreprise | contenu, catégorie, source (`utilisateur`/`ia_confirmee`/`donnees`), statut (`confirmee`/`a_verifier`), archivable ; consultable et modifiable depuis la fiche entreprise |
+| `company_memories` | Mémoire durable par entreprise | **consignes, préférences et informations durables uniquement** — jamais de copie des tâches/temps/rapports/documents ; contenu, catégorie, source (`utilisateur`/`ia_confirmee`/`donnees`), statut (`confirmee`/`a_verifier`), archivable ; consultable et modifiable depuis la fiche entreprise |
 
 Suppression métier = archivage de préférence. Suppression définitive =
 confirmation explicite.
@@ -119,9 +119,14 @@ WhatsApp Business Platform au MVP (extension future séparée).
 
 - L'API OpenAI n'est **jamais** la source principale de mémoire. Tout
   l'historique utile vit dans Supabase (`ai_conversations`, `ai_messages`,
-  `company_memories`). La Responses API (et si pertinent la Conversations API)
-  peut servir à la continuité, mais l'application doit fonctionner même si le
-  stockage OpenAI est perdu.
+  `company_memories`). Au MVP, les appels utilisent `store: false` : OpenAI ne
+  conserve rien et le contexte est reconstruit depuis Supabase.
+  `openai_conversation_id` reste facultatif et ne doit jamais être nécessaire
+  au fonctionnement.
+- **Séparation stricte souvenirs / données** : les souvenirs portent les
+  consignes, préférences et informations durables ; les tâches, temps,
+  rapports et documents sont toujours lus dans leurs tables d'origine, jamais
+  recopiés dans la mémoire.
 - Une **conversation globale** pour les questions multi-entreprises ; une
   **conversation distincte possible par entreprise**.
 - Maîtrise des coûts : chaque requête n'envoie pas tout l'historique, mais
