@@ -2,7 +2,39 @@
 
 > État utile pour reprendre le travail. Mis à jour à la fin de chaque phase.
 
-## Phase actuelle : 1 terminée — en attente de validation pour la phase 2
+## Phase actuelle : 2 terminée — phase 3 en cours (rythme accéléré demandé)
+
+## Phase 2 · Données et authentification — ✅ terminée (2026-08-11)
+
+### Réalisé
+
+- Projet Supabase Cloud créé par l'utilisateur (région Paris), migrations
+  appliquées via le SQL Editor : 15 tables + enums + triggers + index + RLS.
+- Compte utilisateur unique créé, inscription publique désactivée (D-001).
+- `.env.local` configuré (URL + clé publiable) — jamais commité.
+- Clients Supabase (`src/lib/supabase/`) : navigateur, serveur, proxy de
+  session (`src/proxy.ts`) avec redirection vers /login.
+- Page `/login` (connexion seule), action serveur validée Zod, layout protégé
+  `(app)` avec sidebar desktop + navigation mobile provisoire.
+- CRUD manuel : entreprises (création, édition, archivage), projets, tâches
+  (création, édition, changement de statut rapide, terminer/reprendre).
+- Journalisation `activity_logs` sur toutes les mutations, avec description
+  française et données avant/après.
+- Pages provisoires pour calendrier, historique, rapports, documents,
+  ressources, assistant et paramètres (plus de 404).
+
+### Vérifications
+
+- `lint` ✅ (0 erreur, 0 avertissement) · `typecheck` ✅ · `build` ✅.
+
+### Problèmes connus
+
+- **Aucun test en conditions réelles** : l'utilisateur a choisi d'avancer sans
+  tester la connexion. Le proxy réseau de l'environnement distant bloque
+  `supabase.co`, donc rien n'a été vérifié contre la vraie base. À tester dès
+  que possible (localement via `npm run dev` ou en autorisant le domaine).
+- Pas encore de tests automatisés (prévus avec la logique métier des phases
+  suivantes).
 
 ## Phase 1 · Fondations — ✅ terminée (2026-08-11)
 
