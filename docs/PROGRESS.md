@@ -2,7 +2,45 @@
 
 > État utile pour reprendre le travail. Mis à jour à la fin de chaque phase.
 
-## Phase actuelle : 2 terminée — phase 3 en cours (rythme accéléré demandé)
+## Phase actuelle : 3 terminée — phase 4 en cours (rythme accéléré demandé)
+
+## Phase 3 · Pilotage — ✅ terminée (2026-08-11)
+
+### Réalisé
+
+- **Dashboard réel** : compteurs (à faire, urgentes, en retard, attente client,
+  terminées et temps du mois), échéances du jour/de la semaine, charge par
+  entreprise (temps + tâches ouvertes), prestations à facturer avec total,
+  activité récente. Chaque compteur est cliquable vers la vue filtrée.
+- **Temps passé** : action `logTime` (validée Zod, vérification
+  d'appartenance), dialogue de saisie avec raccourcis 15 min/30 min/1 h/2 h,
+  bouton horloge sur chaque tâche, mise à jour du cumul `actual_minutes`.
+- **Vues tâches** : liste + Kanban (colonnes par statut, sans glisser-déposer
+  au MVP), filtres combinables par entreprise, projet, statut, priorité,
+  catégorie, facturation et période (retard/aujourd'hui/semaine/mois) via URL.
+- **Calendrier mensuel** : grille avec navigation mois précédent/suivant,
+  tâches à leur échéance, style urgence/terminée/retard.
+- **Historique** : page dédiée groupée par jour (fuseau Europe/Paris), icône
+  manuelle/IA, pastille entreprise.
+- **Cockpit entreprise** : 7 onglets (Vue d'ensemble, Projets & tâches,
+  Rapports, Contacts & WhatsApp, Documents, Accès rapides, Historique) —
+  les onglets des phases 4/5 affichent un état « bientôt disponible ».
+  Boutons rapides : tâche, temps, modifier, archiver.
+- **Paramètres** : édition du profil (nom, fuseau).
+- **Tests** : Vitest configuré, 18 tests (formats de dates FR/fuseau,
+  validations entreprise/tâche/temps). Un test a révélé et corrigé un vrai
+  bug : montant vide converti en 0 au lieu de null.
+
+### Vérifications
+
+- `lint` ✅ · `typecheck` ✅ · `test` ✅ (18/18) · `build` ✅.
+
+### Problèmes connus
+
+- Toujours aucun test en conditions réelles contre Supabase (réseau bloqué
+  dans l'environnement distant, l'utilisateur a choisi d'avancer sans tester).
+- Kanban sans glisser-déposer (changement de statut via la carte) — décision
+  MVP, à réévaluer après le MVP.
 
 ## Phase 2 · Données et authentification — ✅ terminée (2026-08-11)
 

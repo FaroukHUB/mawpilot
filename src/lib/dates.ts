@@ -1,4 +1,9 @@
-import { format, formatDistanceToNow } from "date-fns";
+import {
+  endOfWeek,
+  format,
+  formatDistanceToNow,
+  startOfMonth,
+} from "date-fns";
 import { fr } from "date-fns/locale";
 import { TZDate } from "@date-fns/tz";
 
@@ -38,6 +43,21 @@ export function formatDateTime(date: Date | string | number): string {
 /** Distance relative : « il y a 2 heures ». */
 export function formatRelative(date: Date | string | number): string {
   return formatDistanceToNow(new Date(date), { locale: fr, addSuffix: true });
+}
+
+/** Date du jour au format ISO (yyyy-MM-dd), fuseau de l'application. */
+export function todayISODate(): string {
+  return format(now(), "yyyy-MM-dd");
+}
+
+/** Premier jour du mois courant au format ISO. */
+export function monthStartISODate(): string {
+  return format(startOfMonth(now()), "yyyy-MM-dd");
+}
+
+/** Dernier jour de la semaine courante (dimanche) au format ISO. */
+export function weekEndISODate(): string {
+  return format(endOfWeek(now(), { weekStartsOn: 1 }), "yyyy-MM-dd");
 }
 
 /** Durée en minutes → « 2 h 30 » ou « 45 min ». */

@@ -37,12 +37,12 @@ export const taskSchema = z.object({
     .nullable()
     .optional(),
   estimated_minutes: z
-    .union([z.coerce.number().int().min(0, "Estimation invalide."), z.literal(""), z.null()])
+    .union([z.literal(""), z.null(), z.coerce.number().int().min(0, "Estimation invalide.")])
     .optional()
     .transform((v) => (v === "" || v === undefined || v === null ? null : v)),
   billing_status: z.enum(BILLING_STATUSES).default("incluse"),
   amount: z
-    .union([z.coerce.number().min(0, "Montant invalide."), z.literal(""), z.null()])
+    .union([z.literal(""), z.null(), z.coerce.number().min(0, "Montant invalide.")])
     .optional()
     .transform((v) => (v === "" || v === undefined || v === null ? null : v)),
 });

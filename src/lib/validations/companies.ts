@@ -32,7 +32,7 @@ export const companySchema = z.object({
     .optional(),
   notes: z.string().trim().max(5000).transform((v) => (v === "" ? null : v)).nullable().optional(),
   monthly_amount: z
-    .union([z.coerce.number().min(0, "Montant invalide."), z.literal(""), z.null()])
+    .union([z.literal(""), z.null(), z.coerce.number().min(0, "Montant invalide.")])
     .optional()
     .transform((v) => (v === "" || v === undefined || v === null ? null : v)),
   included_services: z

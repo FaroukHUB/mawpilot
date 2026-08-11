@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, Loader2, Pencil, Undo2 } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, Pencil, Undo2 } from "lucide-react";
 
 import { setTaskStatus } from "@/actions/tasks";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import {
   type CompanyOption,
   type ProjectOption,
 } from "@/components/tasks/task-form-dialog";
+import { TimeEntryDialog } from "@/components/time/time-entry-dialog";
 import { formatDateShort } from "@/lib/dates";
 import {
   taskPriorityBadgeClass,
@@ -98,6 +99,20 @@ export function TaskRow({
       <Badge className={taskPriorityBadgeClass[task.priority]}>
         {taskPriorityLabels[task.priority]}
       </Badge>
+      <TimeEntryDialog
+        companyId={task.company_id}
+        taskId={task.id}
+        taskTitle={task.title}
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Enregistrer du temps sur cette tâche"
+          className="shrink-0 text-muted-foreground hover:text-foreground"
+        >
+          <Clock aria-hidden />
+        </Button>
+      </TimeEntryDialog>
       <TaskFormDialog companies={companies} projects={projects} task={task}>
         <Button
           variant="ghost"
