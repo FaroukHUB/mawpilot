@@ -12,6 +12,10 @@ import {
   DocumentsPanel,
   type DocumentRow,
 } from "@/components/documents/documents-panel";
+import {
+  MemoriesPanel,
+  type MemoryRow,
+} from "@/components/memories/memories-panel";
 import { ReportGenerateDialog } from "@/components/reports/report-generate-dialog";
 import { ResourcesPanel } from "@/components/resources/resources-panel";
 import type { ResourceRow } from "@/components/resources/resource-form-dialog";
@@ -54,6 +58,7 @@ const TABS = [
   { key: "contacts", label: "Contacts & WhatsApp" },
   { key: "documents", label: "Documents" },
   { key: "acces", label: "Accès rapides" },
+  { key: "memoire", label: "Mémoire IA" },
   { key: "historique", label: "Historique" },
 ] as const;
 
@@ -88,6 +93,7 @@ export default async function CompanyPage({
     { data: resources },
     { data: documents },
     { data: reports },
+    { data: memories },
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -141,6 +147,12 @@ export default async function CompanyPage({
       .neq("status", "archive")
       .order("period_end", { ascending: false })
       .limit(30),
+    supabase
+      .from("company_memories")
+      .select()
+      .eq("company_id", id)
+      .order("is_archived")
+      .order("created_at", { ascending: false }),
   ]);
 
   const projectList = (projects ?? []) as Project[];
@@ -510,6 +522,13 @@ export default async function CompanyPage({
           companyId={company.id}
           resources={(resources ?? []) as ResourceRow[]}
           showArchived
+        />
+      ) : null}
+
+      {tab === "memoire" ? (
+        <MemoriesPanel
+          companyId={company.id}
+          memories={(memories ?? []) as MemoryRow[]}
         />
       ) : null}
 

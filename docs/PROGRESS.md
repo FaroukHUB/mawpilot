@@ -2,7 +2,55 @@
 
 > État utile pour reprendre le travail. Mis à jour à la fin de chaque phase.
 
-## Phase actuelle : 5 terminée — phase 6 (assistant texte) à suivre
+## Phase actuelle : 6 terminée — phase 7 (assistant vocal) à suivre
+
+## Phase 6 · Assistant texte — ✅ terminée (2026-08-11)
+
+### Réalisé
+
+- **Migration 5** : fonction PostgreSQL `execute_ai_actions` — exécution
+  transactionnelle des actions confirmées (D-007). Tout réussit ou tout est
+  annulé ; chaque action est journalisée. **Pas `security definer`** : la RLS
+  s'applique, et l'appartenance est vérifiée explicitement pour chaque
+  identifiant.
+- **Catalogue de fonctions** (`src/lib/ai/functions.ts`) : 9 fonctions de
+  lecture + 10 d'écriture, chacune avec son schéma Zod converti en JSON Schema
+  pour la Responses API. L'IA ne peut rien faire d'autre.
+- **Moteur d'interprétation** (`src/lib/ai/interpret.ts`), indépendant
+  d'OpenAI donc testable : les lectures s'exécutent et alimentent le modèle ;
+  les écritures s'arrêtent en **propositions à confirmer**. Garde-fou de 4
+  allers-retours maximum.
+- **Responses API** avec `store: false` (D-015) ; jamais l'Assistants API.
+  Modèles configurables par variables d'environnement.
+- **Contexte fenêtré** (D-013) : consigne système (date du jour en
+  Europe/Paris, entreprises et leurs identifiants, consignes durables) +
+  résumé roulant + 12 derniers messages. Jamais l'historique complet.
+- **Conversations** : une générale (multi-entreprises) et autant que voulu
+  par entreprise, avec résumé roulant maintenu localement.
+- **Mémoire** : onglet « Mémoire IA » dans le cockpit — ajouter, confirmer,
+  archiver, supprimer. Distinction visible de la source (vous / assistant
+  confirmé / déduit) et du statut (confirmée / à vérifier).
+- **Anti-abus** : limite de 12 requêtes/minute et 120/heure, comptées en base.
+- **Interface** : chat avec exemples cliquables, prévisualisation des actions
+  proposées, confirmation ou annulation, messages système récapitulant ce qui
+  a réellement été exécuté.
+
+### Vérifications
+
+- `lint` ✅ · `typecheck` ✅ · `test` ✅ (93/93, dont 26 nouveaux sur l'IA avec
+  réponses de modèle simulées) · `build` ✅.
+- Les tests couvrent : séparation lecture/écriture, refus des fonctions
+  inventées, refus des arguments invalides (UUID, énumérations, durées
+  négatives, URL), JSON illisible, boucle bornée, actions multiples, et
+  contenu de la consigne système.
+
+### Problèmes connus
+
+- Migration 5 à appliquer par l'utilisateur dans le SQL Editor.
+- `OPENAI_API_KEY` à renseigner dans `.env.local` pour utiliser l'assistant
+  (l'interface l'indique clairement si elle est absente).
+- Toujours aucun test en conditions réelles (réseau bloqué dans
+  l'environnement de développement distant).
 
 ## Phase 5 · Rapports — ✅ terminée (2026-08-11)
 
