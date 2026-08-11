@@ -77,6 +77,22 @@ squelette vide) ; ce document décrit la cible.
 - **Rapports** : l'assemblage des faits (tâches, temps, livrables de la
   période) est du code déterministe et testé ; l'IA n'intervient que pour la
   rédaction de la synthèse, jamais pour produire des faits.
+- **Mémoire de l'assistant — Supabase est la source de vérité** :
+  - `ai_conversations` (globale ou par entreprise, résumé roulant),
+    `ai_messages` (historique local), `company_memories` (faits durables par
+    entreprise, avec source et statut confirmé/à vérifier) ;
+  - construction du contexte à chaque requête : consigne système + résumé
+    roulant de la conversation + N derniers messages + données pertinentes
+    récupérées dans Supabase (jamais l'historique complet) — pour limiter
+    coûts et erreurs ;
+  - le résumé roulant est régénéré côté serveur au fil de la conversation et
+    stocké sur `ai_conversations.summary` ;
+  - la Responses API (voire la Conversations API) peut optimiser la
+    continuité, mais `openai_conversation_id` n'est qu'un cache : sa perte ne
+    casse rien ;
+  - l'écriture d'un souvenir passe exclusivement par la fonction
+    `save_company_memory`, sur demande explicite ou confirmation de
+    l'utilisateur — jamais de mémorisation silencieuse.
 - **Fuseau et locale** : helpers uniques dans `src/lib/dates.ts`
   (`Europe/Paris`, `fr`). Stockage en UTC (`timestamptz`), affichage converti.
 

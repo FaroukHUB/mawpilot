@@ -43,6 +43,9 @@ Toutes les tables métier : `user_id`, `created_at`, `updated_at`, RLS.
 | `report_attachments` | Pièces jointes de rapport | document, tableau, URL ou fichier ; ordre |
 | `report_deliveries` | Partages | destination, méthode, contenu réellement préparé, statut (préparé → confirmé envoyé), notes |
 | `report_schedules` | Planification | hebdo/mensuel, jour, heure, fuseau, canal par défaut, sections ; crée un rappel/brouillon, **jamais d'envoi automatique** |
+| `ai_conversations` | Conversations assistant | une globale (multi-entreprises, `company_id` NULL) ou une par entreprise ; résumé roulant ; id OpenAI = simple cache |
+| `ai_messages` | Historique des échanges | rôle, contenu, lien vers `ai_requests` ; conservé localement |
+| `company_memories` | Mémoire durable par entreprise | contenu, catégorie, source (`utilisateur`/`ia_confirmee`/`donnees`), statut (`confirmee`/`a_verifier`), archivable ; consultable et modifiable depuis la fiche entreprise |
 
 Suppression métier = archivage de préférence. Suppression définitive =
 confirmation explicite.
@@ -103,12 +106,37 @@ WhatsApp Business Platform au MVP (extension future séparée).
   `generate_weekly_report`, `generate_monthly_report`,
   `update_report_from_dictation`, `add_report_link`, `attach_company_document`,
   `prepare_whatsapp_share`, `mark_report_as_sent`, `add_company_resource`,
-  `search_company_resources`.
+  `search_company_resources`, `search_company_memories`,
+  `save_company_memory`, `get_company_context`, `search_activity`,
+  `search_reports`, `search_documents`.
 - Jamais d'accès SQL direct ; arguments validés Zod ; appartenance à
   l'utilisateur vérifiée ; ambiguïté → question, jamais de choix silencieux ;
   actions multiples/importantes/destructives → confirmation.
 - Dates relatives (« vendredi », « demain ») interprétées avec la date serveur,
   locale `fr`, fuseau `Europe/Paris`.
+
+### Mémoire et conversations (source de vérité : Supabase)
+
+- L'API OpenAI n'est **jamais** la source principale de mémoire. Tout
+  l'historique utile vit dans Supabase (`ai_conversations`, `ai_messages`,
+  `company_memories`). La Responses API (et si pertinent la Conversations API)
+  peut servir à la continuité, mais l'application doit fonctionner même si le
+  stockage OpenAI est perdu.
+- Une **conversation globale** pour les questions multi-entreprises ; une
+  **conversation distincte possible par entreprise**.
+- Maîtrise des coûts : chaque requête n'envoie pas tout l'historique, mais
+  les derniers messages + un résumé roulant + les données pertinentes
+  récupérées depuis Supabase via les fonctions de recherche.
+- Fonctions de lecture sécurisées par entreprise : tâches, activités,
+  rapports, documents, ressources, notes et souvenirs
+  (`search_company_memories`, `get_company_context`…).
+- Écriture de mémoire : uniquement via `save_company_memory`, quand
+  l'utilisateur demande explicitement de retenir une information ou confirme
+  une proposition. **Une supposition de l'IA ne devient jamais automatiquement
+  un souvenir fiable** (statut `a_verifier` tant que non confirmée ; les faits
+  issus des données enregistrées sont tracés `source = donnees`).
+- Les souvenirs sont consultables, modifiables, archivables et supprimables
+  depuis la fiche entreprise.
 
 ## 6. Sécurité (résumé)
 
