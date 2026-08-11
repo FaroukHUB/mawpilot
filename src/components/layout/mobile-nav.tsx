@@ -15,7 +15,7 @@ export function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-10 border-b bg-sidebar text-sidebar-foreground md:hidden">
+    <header className="sticky top-0 z-10 border-b bg-sidebar text-sidebar-foreground md:hidden print:hidden">
       <div className="flex items-center gap-2 px-4 py-3">
         <span className="flex size-7 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
           <Rocket className="size-4" aria-hidden />

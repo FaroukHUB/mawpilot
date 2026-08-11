@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock,
   Euro,
+  FileText,
   Hourglass,
   ListTodo,
 } from "lucide-react";
@@ -24,6 +25,7 @@ import {
   todayISODate,
   weekEndISODate,
 } from "@/lib/dates";
+import { lastWeekPeriod } from "@/lib/reports/periods";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Tableau de bord" };
@@ -53,8 +55,14 @@ export default async function DashboardPage() {
   const monthStart = monthStartISODate();
   const weekEnd = weekEndISODate();
 
-  const [{ data: rawTasks }, { data: rawTime }, { data: rawLogs }] =
-    await Promise.all([
+  const lastWeek = lastWeekPeriod();
+  const [
+    { data: rawTasks },
+    { data: rawTime },
+    { data: rawLogs },
+    { data: activeCompanies },
+    { data: weekReports },
+  ] = await Promise.all([
       supabase
         .from("tasks")
         .select(
@@ -70,6 +78,16 @@ export default async function DashboardPage() {
         .select("id, description, created_at")
         .order("created_at", { ascending: false })
         .limit(8),
+      supabase
+        .from("companies")
+        .select("id, name, color")
+        .eq("is_active", true)
+        .order("name"),
+      supabase
+        .from("reports")
+        .select("id, company_id, status")
+        .eq("period_start", lastWeek.start)
+        .eq("period_end", lastWeek.end),
     ]);
 
   const tasks = (rawTasks ?? []) as unknown as DashTask[];
@@ -118,6 +136,19 @@ export default async function DashboardPage() {
   }
   const companyLoad = [...byCompany.entries()].sort(
     (a, b) => b[1].minutes - a[1].minutes
+  );
+
+  // Rapports de la semaine écoulée : à préparer (absent) ou à envoyer (non partagé).
+  const reportsByCompany = new Map(
+    (weekReports ?? []).map((r) => [r.company_id, r])
+  );
+  const reportTodo = (activeCompanies ?? []).map((c) => ({
+    ...c,
+    report: reportsByCompany.get(c.id) ?? null,
+  }));
+  const reportsToPrepare = reportTodo.filter((c) => c.report === null);
+  const reportsToSend = reportTodo.filter(
+    (c) => c.report !== null && c.report.status !== "partage"
   );
 
   const stats = [
@@ -281,6 +312,62 @@ export default async function DashboardPage() {
                 </p>
               </>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="size-4" aria-hidden />
+              Rapports de la semaine écoulée
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            {reportsToPrepare.length === 0 && reportsToSend.length === 0 ? (
+              <p className="text-muted-foreground">
+                {(activeCompanies ?? []).length === 0
+                  ? "Aucune entreprise active."
+                  : "Tous les rapports de la semaine écoulée ont été partagés."}
+              </p>
+            ) : (
+              <>
+                {reportsToPrepare.map((c) => (
+                  <div key={c.id} className="flex items-center gap-2">
+                    <span
+                      className="size-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: c.color }}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                    <Badge variant="secondary">à préparer</Badge>
+                  </div>
+                ))}
+                {reportsToSend.map((c) => (
+                  <div key={c.id} className="flex items-center gap-2">
+                    <span
+                      className="size-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: c.color }}
+                      aria-hidden
+                    />
+                    <Link
+                      href={`/rapports/${c.report?.id}`}
+                      className="min-w-0 flex-1 truncate hover:underline"
+                    >
+                      {c.name}
+                    </Link>
+                    <Badge className="bg-brand-yellow/30 text-foreground">
+                      à envoyer
+                    </Badge>
+                  </div>
+                ))}
+              </>
+            )}
+            <Link
+              href="/rapports"
+              className="mt-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Ouvrir les rapports →
+            </Link>
           </CardContent>
         </Card>
 

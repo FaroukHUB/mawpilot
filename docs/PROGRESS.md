@@ -2,7 +2,54 @@
 
 > État utile pour reprendre le travail. Mis à jour à la fin de chaque phase.
 
-## Phase actuelle : 4 terminée — phase 5 (rapports) à suivre
+## Phase actuelle : 5 terminée — phase 6 (assistant texte) à suivre
+
+## Phase 5 · Rapports — ✅ terminée (2026-08-11)
+
+### Réalisé
+
+- **Collecte déterministe des faits** (`src/lib/reports/collect.ts`) :
+  fonction pure et testée qui rassemble tâches terminées, en cours, bloquées,
+  en attente client, échéances à venir, temps passé (dont facturable),
+  livrables et prestations à facturer sur la période. **N'invente jamais un
+  fait.**
+- **Faits figés à la génération** dans `reports.source_data` (D-019) : un
+  rapport partagé reste le reflet exact de ce qui a été communiqué.
+- **Éditeur de rapport** : 10 sections cochables, chacune affichant d'abord
+  les **données enregistrées** (encadré gris « Données enregistrées ») puis un
+  champ de commentaire libre — la distinction faits / rédaction est visible à
+  l'écran, comme exigé.
+- **Indicateurs saisis** (Search Console, Analytics…) et **liens ajoutés**,
+  éditables à la volée.
+- **Message WhatsApp** court, formaté (gras WhatsApp), modifiable et
+  régénérable depuis les faits.
+- **Exports** : DOCX (bibliothèque `docx`, avec tableau récapitulatif), CSV
+  (séparateur `;` + BOM UTF-8 pour Excel français), PDF par page imprimable
+  dédiée (D-018).
+- **Partage assisté manuel** : choix de la destination enregistrée, lien
+  `wa.me` prérempli pour un numéro valide, partage natif quand le navigateur
+  le permet, copie du message, repli WhatsApp Web. Avertissement explicite
+  pour les groupes. Chaque préparation est journalisée ; **le rapport n'est
+  marqué « partagé » qu'après confirmation manuelle** (« J'ai envoyé »).
+- **Rappels** : le tableau de bord liste les rapports « à préparer » et « à
+  envoyer » pour la semaine écoulée ; la page Rapports propose un raccourci de
+  génération par entreprise manquante.
+- **Onglet Rapports** du cockpit entreprise branché.
+
+### Vérifications
+
+- `lint` ✅ · `typecheck` ✅ · `test` ✅ (67/67, dont 23 nouveaux sur la
+  génération déterministe, le formatage WhatsApp et le CSV) · `build` ✅.
+
+### Problèmes connus
+
+- Toujours aucun test en conditions réelles contre Supabase (réseau bloqué
+  dans l'environnement distant).
+- `report_schedules` existe en base mais n'a pas encore d'interface de
+  configuration : les rappels utilisent la semaine écoulée par défaut
+  (conforme à D-006, à compléter si besoin).
+- `exceljs` retiré (dépendance vulnérable) : les tableaux sortent en CSV, ce
+  que le cahier des charges autorise explicitement.
 
 ## Phase 4 · Ressources et documents — ✅ terminée (2026-08-11)
 

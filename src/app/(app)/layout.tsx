@@ -16,7 +16,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <Sidebar userEmail={user.email ?? ""} />
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileNav />
-        <main className="flex-1 bg-muted/40 p-4 md:p-6">{children}</main>
+        <main className="flex-1 bg-muted/40 p-4 md:p-6 print:bg-white print:p-0">
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Clock, FolderKanban, Pencil, Plus } from "lucide-react";
+import { Clock, FileText, FolderKanban, Pencil, Plus } from "lucide-react";
 
 import { CompanyArchiveButton } from "@/components/companies/company-archive-button";
 import { CompanyFormDialog } from "@/components/companies/company-form-dialog";
@@ -12,6 +12,7 @@ import {
   DocumentsPanel,
   type DocumentRow,
 } from "@/components/documents/documents-panel";
+import { ReportGenerateDialog } from "@/components/reports/report-generate-dialog";
 import { ResourcesPanel } from "@/components/resources/resources-panel";
 import type { ResourceRow } from "@/components/resources/resource-form-dialog";
 import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
@@ -26,8 +27,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { formatMinutes, formatRelative, monthStartISODate } from "@/lib/dates";
+import {
+  formatDateShort,
+  formatMinutes,
+  formatRelative,
+  monthStartISODate,
+} from "@/lib/dates";
 import { projectStatusLabels } from "@/lib/labels";
+import {
+  currentMonthPeriod,
+  currentWeekPeriod,
+  lastMonthPeriod,
+  lastWeekPeriod,
+} from "@/lib/reports/periods";
+import { reportStatusLabels } from "@/lib/validations/reports";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import type { Company, Project, TaskWithRefs } from "@/types/database";
@@ -74,6 +87,7 @@ export default async function CompanyPage({
     { data: channels },
     { data: resources },
     { data: documents },
+    { data: reports },
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -120,6 +134,13 @@ export default async function CompanyPage({
       .select()
       .eq("company_id", id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("reports")
+      .select("id, title, status, period_start, period_end")
+      .eq("company_id", id)
+      .neq("status", "archive")
+      .order("period_end", { ascending: false })
+      .limit(30),
   ]);
 
   const projectList = (projects ?? []) as Project[];
@@ -132,6 +153,12 @@ export default async function CompanyPage({
   const minutesMonth = (timeMonth ?? []).reduce((s, e) => s + e.minutes, 0);
 
   const companyOption = [{ id: company.id, name: company.name }];
+  const reportPresets = {
+    lastWeek: lastWeekPeriod(),
+    currentWeek: currentWeekPeriod(),
+    lastMonth: lastMonthPeriod(),
+    currentMonth: currentMonthPeriod(),
+  };
   const projectOptions = projectList.map((p) => ({
     id: p.id,
     name: p.name,
@@ -495,11 +522,55 @@ export default async function CompanyPage({
 
       {tab === "rapports" ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Bientôt disponible</CardTitle>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle>Rapports ({(reports ?? []).length})</CardTitle>
+            <ReportGenerateDialog
+              companies={companyOption}
+              presets={reportPresets}
+              defaultCompanyId={company.id}
+            >
+              <Button size="sm">
+                <Plus aria-hidden />
+                Générer
+              </Button>
+            </ReportGenerateDialog>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Les rapports hebdomadaires et mensuels arrivent en phase 5.
+          <CardContent className="flex flex-col gap-2">
+            {(reports ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Aucun rapport pour cette entreprise. Générez-en un : il
+                rassemblera automatiquement les faits de la période.
+              </p>
+            ) : (
+              (reports ?? []).map((report) => (
+                <Link
+                  key={report.id}
+                  href={`/rapports/${report.id}`}
+                  className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <div className="flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-shadow hover:shadow-md">
+                    <FileText
+                      className="size-4 shrink-0 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {report.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDateShort(report.period_start)} →{" "}
+                        {formatDateShort(report.period_end)}
+                      </p>
+                    </div>
+                    <Badge variant="secondary">
+                      {reportStatusLabels[
+                        report.status as keyof typeof reportStatusLabels
+                      ] ?? report.status}
+                    </Badge>
+                  </div>
+                </Link>
+              ))
+            )}
           </CardContent>
         </Card>
       ) : null}

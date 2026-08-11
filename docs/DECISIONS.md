@@ -167,3 +167,27 @@ hébergeur en extension. L'IA n'est appelée qu'au moment du déclenchement,
 pour rédiger ou interpréter. Aucun message n'est jamais envoyé à un client
 sans action de l'utilisateur.
 
+## D-018 · PDF par impression navigateur, DOCX et CSV côté serveur
+
+**Date** : 2026-08-11.
+- **DOCX** : bibliothèque `docx` (pure JS, maintenue), générée côté serveur.
+- **CSV** : généré à la main (séparateur `;` + BOM UTF-8 pour Excel français),
+  zéro dépendance. Le cahier des charges demande « CSV **ou** XLSX » :
+  `exceljs` a été essayé puis retiré car il embarque une dépendance
+  vulnérable et n'est plus activement maintenu.
+- **PDF** : page imprimable dédiée (`/rapports/<id>/impression`) + impression
+  native du navigateur (« Enregistrer au format PDF »). Aucune dépendance
+  lourde, rendu fidèle, fonctionne identiquement sur ordinateur et mobile, et
+  évite les limites de taille/durée des fonctions serverless. Un rendu PDF
+  côté serveur pourra être ajouté après le MVP si un besoin d'automatisation
+  apparaît.
+
+## D-019 · Faits du rapport figés à la génération
+
+**Date** : 2026-08-11.
+Au moment de la génération, les faits collectés sont enregistrés dans
+`reports.source_data` (JSONB). Le rapport ne change plus si les tâches
+évoluent ensuite : un rapport partagé reste le reflet exact de ce qui a été
+communiqué. L'assemblage (`buildReportFacts`) est une fonction pure et
+déterministe, testée unitairement, qui ne produit jamais un fait absent des
+données.
