@@ -2,7 +2,48 @@
 
 > État utile pour reprendre le travail. Mis à jour à la fin de chaque phase.
 
-## Phase actuelle : 7 terminée — phase 8 (finition) à suivre
+## Phase actuelle : 8 terminée — MVP complet, en attente du premier essai réel
+
+## Phase 8 · Finition — ✅ terminée (2026-08-11)
+
+### Réalisé
+
+- **PWA installable** : `manifest.webmanifest` (raccourcis Assistant, Tâches,
+  Rapports), icônes 192/512/maskable/apple-touch **générées hors ligne** par
+  `scripts/generate-icons.mjs` (encodeur PNG maison — aucune dépendance, le
+  réseau étant bloqué), service worker minimal qui ne met en cache **que** les
+  icônes et le manifest (jamais de page authentifiée : ce serait une fuite de
+  données sur un appareil partagé).
+- **Navigation mobile repensée** : barre inférieure à 4 onglets (Accueil,
+  Tâches, **Assistant en évidence avec l'icône micro**, Clients) + menu complet
+  dépliable dans l'en-tête, avec déconnexion.
+- **Accessibilité** : lien « Aller au contenu principal », zoom jamais bloqué
+  (`maximumScale: 5`), `aria-current` sur la navigation, `aria-label` sur tous
+  les boutons icônes, rôles `status`/`alert`, focus visible partout.
+- **Robustesse** : page d'erreur avec reprise, squelettes de chargement, page
+  404 en français.
+- **En-têtes de sécurité HTTP** dans `next.config.ts` (nosniff, DENY iframe,
+  Referrer-Policy, Permissions-Policy micro uniquement, HSTS).
+- **Déploiement portable** (D-008) : `output: standalone` + `Dockerfile`
+  multi-étapes (utilisateur non root, secrets fournis à l'exécution) +
+  `.dockerignore`. README documentant Vercel **et** Docker.
+- **Audit de sécurité complet** documenté dans `docs/SECURITY.md` : 20
+  contrôles, tous au vert (35/35 mutations filtrées sur `user_id`, 13/13
+  modules validés Zod, 2/2 routes API authentifiées, aucun secret dans le
+  dépôt, aucun `dangerouslySetInnerHTML`, pas de redirection ouverte).
+
+### Vérifications
+
+- `lint` ✅ · `typecheck` ✅ · `test` ✅ (124/124) · `build` ✅ ·
+  build `standalone` produit et vérifié.
+
+### Reste à faire (par l'utilisateur)
+
+1. Appliquer les migrations 5, 6 et 7 si ce n'est pas fait.
+2. Renseigner `OPENAI_API_KEY` dans `.env.local`.
+3. **Premier essai réel en local** (`npm run dev`) : c'est la seule chose qui
+   n'a jamais pu être testée ici (réseau bloqué vers Supabase et OpenAI).
+4. Choisir l'hébergeur et déployer (README, section Déploiement).
 
 ## Phase 7 · Assistant vocal — ✅ terminée (2026-08-11)
 
@@ -313,8 +354,14 @@
 - Clients Supabase (`@supabase/ssr`), page `/login` (inscription fermée),
   layout protégé `(app)`, CRUD manuel entreprises/projets/tâches.
 
-## Phases suivantes
+## Après le MVP
 
-3. Pilotage (dashboard, vues tâches, temps, historique, cockpit entreprise) ·
-4. Ressources et documents · 5. Rapports · 6. Assistant texte ·
-7. Assistant vocal · 8. Finition (PWA, accessibilité, sécurité, déploiement).
+Idées validées comme cap, hors périmètre du MVP (voir `docs/DECISIONS.md`) :
+
+- **Portail client** (D-011) : tableau de bord consultable par chaque client,
+  avec curation stricte de ce qui est exposé.
+- **Connecteurs externes** (D-016) : Search Console / Analytics 4 en lecture,
+  notifications web push, calendrier, brouillons d'emails.
+- **Déclencheurs planifiés** (D-017) : briefing du matin, relance de saisie du
+  temps, brouillon de rapport hebdomadaire — l'application déclenche, l'IA
+  rédige, l'utilisateur valide.

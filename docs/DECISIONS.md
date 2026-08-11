@@ -61,12 +61,24 @@ Les demandes IA pouvant produire plusieurs actions (« ajoute 3 tâches et
 Supabase appelée par le serveur Next.js : tout réussit ou tout échoue,
 puis l'ensemble est journalisé. Détail d'implémentation en phase 6.
 
-## D-008 · Hébergement de production à décider en phase 8
+## D-008 · Hébergement : déploiement portable, choix laissé ouvert
 
-**Date** : 2026-08-11 · **Statut** : demandé par l'utilisateur.
-Le forfait Vercel Hobby n'est pas considéré comme définitif pour un usage
-professionnel (limites et conditions d'usage commercial). Le choix final
-(Vercel Pro ou alternative) sera fait en phase 8 avec l'utilisateur.
+**Date** : 2026-08-11 · **Statut** : arbitré en phase 8.
+Le forfait Vercel Hobby est réservé par ses conditions à un usage non
+commercial ; l'application étant un outil professionnel privé, la situation est
+une zone grise que l'utilisateur doit trancher lui-même après lecture de la
+page « Fair Use » de Vercel.
+
+Décision technique retenue : **ne dépendre d'aucun hébergeur**. Le projet
+produit un build `output: standalone` et un `Dockerfile`, ce qui permet de
+déployer sur Vercel, Cloudflare, Render, Railway ou un VPS sans modifier une
+ligne de code. Le README documente les deux chemins (Vercel et Docker).
+
+Conseil donné à l'utilisateur : démarrer sur une offre gratuite (le trafic est
+d'un seul utilisateur), et ne payer que si la mise en veille des offres
+gratuites devient gênante — la migration prendra alors moins d'une heure.
+Les données vivant chez Supabase, changer d'hébergeur n'implique aucune
+migration de base.
 
 ## D-009 · Énumérations PostgreSQL en slugs français sans accents
 

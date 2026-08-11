@@ -1,44 +1,138 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Rocket } from "lucide-react";
+import {
+  Building2,
+  LayoutDashboard,
+  ListChecks,
+  LogOut,
+  Menu,
+  Mic,
+  Rocket,
+  X,
+} from "lucide-react";
 
+import { logout } from "@/actions/auth";
 import { navigation } from "@/components/layout/nav-items";
 import { cn } from "@/lib/utils";
 
-/**
- * Navigation mobile provisoire : en-tête + rangée d'onglets défilante.
- * Sera raffinée en phase 8 (finition responsive).
- */
-export function MobileNav() {
+/** Onglets principaux de la barre inférieure (mobile). */
+const PRIMARY = [
+  { href: "/dashboard", label: "Accueil", icon: LayoutDashboard },
+  { href: "/taches", label: "Tâches", icon: ListChecks },
+  { href: "/assistant", label: "Assistant", icon: Mic, highlight: true },
+  { href: "/entreprises", label: "Clients", icon: Building2 },
+] as const;
+
+export function MobileNav({ userEmail }: { userEmail: string }) {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = React.useState(false);
+
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="sticky top-0 z-10 border-b bg-sidebar text-sidebar-foreground md:hidden print:hidden">
-      <div className="flex items-center gap-2 px-4 py-3">
-        <span className="flex size-7 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-          <Rocket className="size-4" aria-hidden />
-        </span>
-        <span className="font-semibold">MAW Pilot</span>
-      </div>
-      <nav aria-label="Navigation principale" className="overflow-x-auto">
-        <ul className="flex gap-1 px-2 pb-2">
-          {navigation.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(`${href}/`);
-            return (
-              <li key={href} className="shrink-0">
+    <>
+      <header className="sticky top-0 z-20 flex items-center justify-between border-b bg-sidebar px-4 py-3 text-sidebar-foreground md:hidden print:hidden">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <span className="flex size-7 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <Rocket className="size-4" aria-hidden />
+          </span>
+          <span className="font-semibold">MAW Pilot</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-expanded={menuOpen}
+          aria-controls="menu-mobile"
+          aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          className="rounded-md p-1.5 hover:bg-sidebar-accent"
+        >
+          {menuOpen ? (
+            <X className="size-5" aria-hidden />
+          ) : (
+            <Menu className="size-5" aria-hidden />
+          )}
+        </button>
+      </header>
+
+      {menuOpen ? (
+        <nav
+          id="menu-mobile"
+          aria-label="Menu complet"
+          className="sticky top-[57px] z-20 border-b bg-sidebar px-2 pb-3 text-sidebar-foreground md:hidden print:hidden"
+        >
+          <ul className="grid grid-cols-2 gap-1">
+            {navigation.map(({ href, label, icon: Icon }) => (
+              <li key={href}>
                 <Link
                   href={href}
-                  aria-current={active ? "page" : undefined}
+                  onClick={() => setMenuOpen(false)}
+                  aria-current={isActive(href) ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium",
-                    active
+                    "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
+                    isActive(href)
                       ? "bg-sidebar-primary text-sidebar-primary-foreground"
                       : "text-sidebar-foreground/80 hover:bg-sidebar-accent"
                   )}
                 >
-                  <Icon className="size-3.5" aria-hidden />
+                  <Icon className="size-4 shrink-0" aria-hidden />
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-2 border-t border-sidebar-border pt-2">
+            <p className="truncate px-3 text-xs text-sidebar-foreground/60">
+              {userEmail}
+            </p>
+            <form action={logout}>
+              <button
+                type="submit"
+                className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent"
+              >
+                <LogOut className="size-4" aria-hidden />
+                Se déconnecter
+              </button>
+            </form>
+          </div>
+        </nav>
+      ) : null}
+
+      {/* Barre inférieure : accès en un pouce aux écrans les plus utilisés. */}
+      <nav
+        aria-label="Navigation rapide"
+        className="fixed inset-x-0 bottom-0 z-20 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
+      >
+        <ul className="grid grid-cols-4">
+          {PRIMARY.map(({ href, label, icon: Icon, ...rest }) => {
+            const active = isActive(href);
+            const highlight = "highlight" in rest && rest.highlight;
+            return (
+              <li key={href}>
+                <Link
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex flex-col items-center gap-0.5 px-1 py-2 text-[11px] font-medium transition-colors",
+                    active ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex size-8 items-center justify-center rounded-full",
+                      highlight
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : active
+                          ? "bg-accent"
+                          : ""
+                    )}
+                  >
+                    <Icon className="size-4" aria-hidden />
+                  </span>
                   {label}
                 </Link>
               </li>
@@ -46,6 +140,6 @@ export function MobileNav() {
           })}
         </ul>
       </nav>
-    </header>
+    </>
   );
 }

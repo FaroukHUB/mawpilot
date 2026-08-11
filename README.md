@@ -62,9 +62,53 @@ CLI Supabase.
 
 ## Déploiement
 
-Cible prévue : Vercel (import du dépôt GitHub, variables d'environnement à
-recopier dans les réglages du projet). Le choix du forfait définitif pour un
-usage professionnel sera fait en phase 8 — voir `docs/DECISIONS.md`.
+Le projet est **portable** : `output: standalone` et un `Dockerfile` permettent
+de le déployer n'importe où sans modifier une ligne de code.
+
+### Option A — Vercel (le plus simple)
+
+1. Sur [vercel.com](https://vercel.com), **Add New → Project**, importer le
+   dépôt GitHub.
+2. Vercel détecte Next.js : ne rien changer aux réglages de build.
+3. Dans **Settings → Environment Variables**, ajouter les variables du tableau
+   ci-dessus (`OPENAI_API_KEY` en *Secret*).
+4. Déployer, puis mettre `NEXT_PUBLIC_APP_URL` à l'URL réelle et redéployer.
+5. Dans Supabase → **Authentication → URL Configuration**, ajouter l'URL de
+   production dans *Site URL* et *Redirect URLs*.
+
+> L'offre gratuite (Hobby) de Vercel est réservée à un usage non commercial :
+> lire leur page « Fair Use » avant de choisir. Voir `docs/DECISIONS.md` (D-008).
+
+### Option B — Docker (Cloudflare, Render, VPS, Coolify…)
+
+Les variables `NEXT_PUBLIC_*` sont figées au moment du build ; les secrets sont
+fournis à l'exécution.
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL="https://xxx.supabase.co" \
+  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="..." \
+  --build-arg NEXT_PUBLIC_APP_URL="https://mawpilot.exemple.fr" \
+  -t mawpilot .
+
+docker run -p 3000:3000 \
+  -e OPENAI_API_KEY="sk-..." \
+  -e OPENAI_TEXT_MODEL="..." \
+  -e OPENAI_TRANSCRIPTION_MODEL="gpt-transcribe" \
+  mawpilot
+```
+
+### Après le premier déploiement
+
+- Appliquer toutes les migrations de `supabase/migrations/` (SQL Editor).
+- Vérifier l'état de la base avec `supabase/checks/verify_schema.sql`.
+- Renseigner le budget de l'assistant dans **Paramètres**.
+- Installer l'application sur le téléphone : ouvrir l'URL, puis
+  « Ajouter à l'écran d'accueil ».
+
+## Sécurité
+
+Voir `docs/SECURITY.md` — audit complet et points de vigilance.
 
 ## Documentation
 

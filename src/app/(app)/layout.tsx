@@ -11,12 +11,18 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     redirect("/login");
   }
 
+  const email = user.email ?? "";
+
   return (
     <div className="flex min-h-svh w-full">
-      <Sidebar userEmail={user.email ?? ""} />
+      <Sidebar userEmail={email} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <MobileNav />
-        <main className="flex-1 bg-muted/40 p-4 md:p-6 print:bg-white print:p-0">
+        <MobileNav userEmail={email} />
+        <main
+          id="contenu-principal"
+          // pb-20 sur mobile : laisse la place à la barre de navigation basse.
+          className="flex-1 bg-muted/40 p-4 pb-20 md:p-6 md:pb-6 print:bg-white print:p-0"
+        >
           {children}
         </main>
       </div>
