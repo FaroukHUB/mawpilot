@@ -5,10 +5,17 @@
 -- utilisateur n'accède qu'à ses propres fichiers. L'accès en lecture se fait
 -- exclusivement par URL signée à durée limitée, générée côté serveur.
 
--- Filet de sécurité : crée le bucket s'il n'existe pas déjà (toujours privé).
+-- Crée le bucket privé s'il n'existe pas déjà, et force public = false
+-- s'il avait été créé publiquement par erreur.
 insert into storage.buckets (id, name, public)
 values ('documents', 'documents', false)
-on conflict (id) do nothing;
+on conflict (id) do update set public = false;
+
+-- Ce script peut être ré-exécuté sans erreur.
+drop policy if exists "documents_select_own" on storage.objects;
+drop policy if exists "documents_insert_own" on storage.objects;
+drop policy if exists "documents_update_own" on storage.objects;
+drop policy if exists "documents_delete_own" on storage.objects;
 
 -- Lecture : uniquement ses propres fichiers.
 create policy "documents_select_own"
