@@ -36,6 +36,47 @@ export type AskResult = {
   };
 };
 
+/**
+ * Conversation globale : réutilisée par le bouton « Parler à MAW », qui doit
+ * être disponible depuis n'importe quelle page sans créer une conversation
+ * à chaque ouverture.
+ */
+export async function getOrCreateGlobalConversation(): Promise<
+  ActionResult<{ id: string }>
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée, reconnectez-vous." };
+
+  const { data: existing } = await supabase
+    .from("ai_conversations")
+    .select("id")
+    .eq("user_id", user.id)
+    .is("company_id", null)
+    .eq("is_archived", false)
+    .order("last_message_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return { data: { id: existing.id } };
+
+  const { data, error } = await supabase
+    .from("ai_conversations")
+    .insert({
+      user_id: user.id,
+      company_id: null,
+      title: "Conversation générale",
+      last_message_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (error) return { error: "Création impossible : " + error.message };
+  return { data: { id: data.id } };
+}
+
 /** Crée une conversation (globale si `companyId` est absent). */
 export async function createConversation(
   companyId?: string

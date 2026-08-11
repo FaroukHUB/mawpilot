@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 
+import { MawButton } from "@/components/assistant/maw-button";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
+import { isOpenAIConfigured } from "@/lib/ai/openai";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
@@ -26,6 +28,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
       </div>
+      {/* Entrée principale de l'application, disponible partout. */}
+      <MawButton isConfigured={isOpenAIConfigured()} />
     </div>
   );
 }

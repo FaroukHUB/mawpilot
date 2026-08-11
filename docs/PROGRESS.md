@@ -2,7 +2,68 @@
 
 > État utile pour reprendre le travail. Mis à jour à la fin de chaque phase.
 
-## État : MVP complet, déployé et vérifié en conditions réelles ✅
+## État : MVP déployé ✅ — recadrage voice-first en cours
+
+Le produit est recadré : **MAW Pilot est un assistant opérationnel vocal**,
+les écrans servant à consulter ce que la dictée a rempli. L'audit de la
+version déployée a donné 5 priorités ; voici leur avancement.
+
+| # | Priorité | État |
+|---|---|---|
+| 1 | Corriger la mémoire IA | ✅ livré |
+| 2 | Interface voice-first | ✅ livré |
+| 3 | Rappels, automatisations, notifications | à faire |
+| 4 | Cohérence des données (contact principal…) | à faire |
+| 5 | Configuration des rapports + XLSX | à faire |
+
+### Priorité 1 — mémoire IA corrigée (2026-08-11)
+
+**Cause réelle** : `src/actions/memories.ts` porte `"use server"` et exportait
+`MEMORY_CATEGORIES` (tableau) et `memoryCategoryLabels` (objet). Next.js
+remplace tout export d'un module serveur par une référence d'appel distant,
+c'est-à-dire une **fonction** : le navigateur recevait donc une fonction au
+lieu d'un tableau, d'où `u.map is not a function`. Ce n'était **pas** un
+problème de migration — `company_memories` était bien présente avec sa RLS.
+
+**Correctif** : constantes déplacées dans `src/lib/memories.ts` (module
+neutre), états vide et erreur explicites, garde `Array.isArray`, libellés
+tolérants aux valeurs inconnues.
+
+**Non-régression** : `tests/server-boundaries.test.ts` analyse tout le projet
+et échoue si un module `"use server"` exporte autre chose qu'une fonction, ou
+si un composant client importe une constante depuis `@/actions`. Vérifié comme
+échouant quand le bug est volontairement réintroduit.
+
+### Priorité 2 — interface voice-first (2026-08-11)
+
+- **Bouton « Parler à MAW »** flottant sur toutes les pages (au-dessus de la
+  barre mobile, en bas à droite sur ordinateur), raccourci `Ctrl/Cmd + K`.
+- **Accroche sur le tableau de bord** avec exemples réels cliquables.
+- **Parcours complet en une feuille** : dicter → corriger → analyser →
+  prévisualiser → confirmer → résumé de ce qui a été enregistré.
+- **Extraction multi-actions** : la consigne système impose d'extraire toutes
+  les actions d'une dictée en un seul tour, et de chercher les tâches
+  existantes avant d'en créer.
+- **Plus de questions inutiles** : seuls l'entreprise + titre (tâche),
+  l'entreprise + durée (temps), le nom (entreprise) et libellé + URL (accès)
+  sont obligatoires. Tout le reste est omis et proposé immédiatement.
+- Conversation globale réutilisée (`getOrCreateGlobalConversation`) plutôt
+  qu'une nouvelle conversation à chaque ouverture.
+
+**Tests** : `tests/ai-dictation.test.ts` couvre les scénarios 1, 4 et 5 de
+l'audit, la recherche avant création, l'absence d'exécution avant
+confirmation et le cumul des coûts. 143 tests au total.
+
+### Exigences notées pour la priorité 3
+
+- Notification **push PWA** avec **email de secours** — un centre de
+  notifications interne ne suffit pas : il faut être prévenu application
+  fermée.
+- Secrets du Cron stockés dans **Supabase Vault**.
+- Déclencheur serveur : `pg_cron` + `pg_net` (Vercel Cron limité à un
+  déclenchement par jour sur l'offre gratuite), exécution idempotente.
+
+## Historique du MVP
 
 **Production** : <https://mawpilot-rose.vercel.app> (Vercel, branche
 `claude/maw-pilot-architecture-mvp-0q0sb9`, déploiement automatique à chaque

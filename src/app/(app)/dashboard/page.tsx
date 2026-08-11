@@ -11,6 +11,7 @@ import {
   ListTodo,
 } from "lucide-react";
 
+import { DashboardVoicePrompt } from "@/components/assistant/dashboard-voice-prompt";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -199,6 +200,8 @@ export default async function DashboardPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <h1 className="text-2xl font-semibold">Tableau de bord</h1>
+
+      <DashboardVoicePrompt />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {stats.map(({ label, value, icon: Icon, href, accent }) => (
