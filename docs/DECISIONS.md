@@ -191,3 +191,20 @@ Au moment de la génération, les faits collectés sont enregistrés dans
 communiqué. L'assemblage (`buildReportFacts`) est une fonction pure et
 déterministe, testée unitairement, qui ne produit jamais un fait absent des
 données.
+
+## D-020 · Compteur de coût IA : mesure réelle, crédit déclaré
+
+**Date** : 2026-08-11 · **Statut** : demandé par l'utilisateur.
+L'API OpenAI **n'expose pas le solde du compte**. Le compteur repose donc sur :
+- la **mesure réelle** des jetons retournés par chaque appel (entrée, entrée en
+  cache, sortie), cumulés sur tous les allers-retours d'une même demande et
+  stockés dans `ai_requests` ;
+- des **tarifs modifiables** dans les réglages (`ai_budget`), à recopier depuis
+  la page Tarifs d'OpenAI — jamais codés en dur comme une vérité, car ils
+  évoluent ;
+- un **crédit déclaré** par l'utilisateur, dont la consommation est déduite
+  depuis la date du dernier rechargement.
+Le coût dépensé est donc exact ; le « restant » est explicitement présenté
+comme une **estimation**. Alerte configurable (2 $ par défaut) et **mise en
+pause automatique de l'assistant** quand le crédit estimé atteint zéro, plutôt
+que de laisser filer la facture. Migration 6.

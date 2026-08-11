@@ -3,6 +3,7 @@ import {
   isWriteFunction,
   validateFunctionArguments,
 } from "@/lib/ai/functions";
+import { addUsage, EMPTY_USAGE, type TokenUsage } from "@/lib/ai/pricing";
 
 /**
  * Moteur d'interprétation — indépendant d'OpenAI pour être testable.
@@ -22,6 +23,8 @@ export type ModelFunctionCall = {
 export type ModelTurn = {
   text: string;
   functionCalls: ModelFunctionCall[];
+  /** Jetons consommés par cet aller-retour (pour le compteur de coût). */
+  usage?: TokenUsage;
 };
 
 export type ToolResult = {
@@ -52,6 +55,8 @@ export type InterpretationResult = {
   proposedActions: ProposedAction[];
   /** Erreurs de validation d'arguments, à afficher honnêtement. */
   issues: string[];
+  /** Jetons cumulés sur tous les allers-retours de cette demande. */
+  usage: TokenUsage;
 };
 
 /** Nombre maximal d'allers-retours avec le modèle (garde-fou anti-boucle). */
@@ -83,6 +88,7 @@ export async function runInterpretation(options: {
   const toolResults: ToolResult[] = [];
   const issues: string[] = [];
   let lastText = "";
+  let usage: TokenUsage = EMPTY_USAGE;
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const turn = await callModel({
@@ -92,10 +98,11 @@ export async function runInterpretation(options: {
       toolResults,
     });
 
+    if (turn.usage) usage = addUsage(usage, turn.usage);
     if (turn.text) lastText = turn.text;
 
     if (turn.functionCalls.length === 0) {
-      return { message: lastText, proposedActions: [], issues };
+      return { message: lastText, proposedActions: [], issues, usage };
     }
 
     const writeCalls = turn.functionCalls.filter((c) => isWriteFunction(c.name));
@@ -128,7 +135,7 @@ export async function runInterpretation(options: {
           description: describeAction(call.name, validated.data),
         });
       }
-      return { message: lastText, proposedActions, issues };
+      return { message: lastText, proposedActions, issues, usage };
     }
 
     // Lectures : on exécute et on renvoie les résultats au modèle.
@@ -170,7 +177,7 @@ export async function runInterpretation(options: {
   issues.push(
     "L'assistant a atteint la limite d'allers-retours ; réponse partielle."
   );
-  return { message: lastText, proposedActions: [], issues };
+  return { message: lastText, proposedActions: [], issues, usage };
 }
 
 function safeParseJson(value: string): Record<string, unknown> | null {

@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { loadBudgetState } from "@/lib/ai/budget";
 import { buildRollingSummary, loadConversationContext, MAX_HISTORY_MESSAGES } from "@/lib/ai/context";
 import { runInterpretation, type ProposedAction } from "@/lib/ai/interpret";
 import { callOpenAIModel } from "@/lib/ai/model-caller";
-import { isOpenAIConfigured } from "@/lib/ai/openai";
+import { getTextModel, isOpenAIConfigured } from "@/lib/ai/openai";
+import { computeCost } from "@/lib/ai/pricing";
 import { checkAiRateLimit } from "@/lib/ai/rate-limit";
 import { executeReadFunction } from "@/lib/ai/read-executors";
 import { isReadFunction, isWriteFunction } from "@/lib/ai/functions";
@@ -24,6 +26,14 @@ export type AskResult = {
   message: string;
   proposedActions: ProposedAction[];
   issues: string[];
+  /** Coût de cette demande en dollars, et budget mis à jour. */
+  costUsd: number;
+  budget: {
+    spentThisMonthUsd: number;
+    remainingUsd: number;
+    creditUsd: number;
+    isLow: boolean;
+  };
 };
 
 /** Crée une conversation (globale si `companyId` est absent). */
@@ -93,6 +103,17 @@ export async function askAssistant(
   const rate = await checkAiRateLimit(supabase, user.id);
   if (!rate.allowed) return { error: rate.message };
 
+  // Garde-fou budget : on refuse d'appeler le modèle si le crédit déclaré est
+  // épuisé, plutôt que de laisser filer la facture.
+  const budgetBefore = await loadBudgetState(supabase, user.id);
+  if (budgetBefore.isExhausted) {
+    return {
+      error:
+        "Crédit IA épuisé d'après votre compteur. Rechargez votre compte OpenAI " +
+        "puis mettez à jour le crédit dans Paramètres → Budget de l'assistant.",
+    };
+  }
+
   const { data: conversation } = await supabase
     .from("ai_conversations")
     .select("id, summary")
@@ -144,12 +165,19 @@ export async function askAssistant(
       },
     });
 
+    const costUsd = computeCost(result.usage, budgetBefore.settings.rates);
+
     await supabase
       .from("ai_requests")
       .update({
         intent: result.proposedActions.map((a) => a.name).join(", ") || "réponse",
         proposed_actions: result.proposedActions,
         status: result.proposedActions.length > 0 ? "proposee" : "executee",
+        model: getTextModel(),
+        input_tokens: result.usage.inputTokens,
+        cached_input_tokens: result.usage.cachedInputTokens,
+        output_tokens: result.usage.outputTokens,
+        cost_usd: costUsd,
       })
       .eq("id", request.id)
       .eq("user_id", user.id);
@@ -165,7 +193,10 @@ export async function askAssistant(
     }
 
     await refreshConversationState(supabase, user.id, conversation.id);
+
+    const budgetAfter = await loadBudgetState(supabase, user.id);
     revalidatePath("/assistant");
+    revalidatePath("/parametres");
 
     return {
       data: {
@@ -173,6 +204,13 @@ export async function askAssistant(
         message: result.message,
         proposedActions: result.proposedActions,
         issues: result.issues,
+        costUsd,
+        budget: {
+          spentThisMonthUsd: budgetAfter.spentThisMonthUsd,
+          remainingUsd: budgetAfter.remainingUsd,
+          creditUsd: budgetAfter.creditUsd,
+          isLow: budgetAfter.isLow,
+        },
       },
     };
   } catch (error) {

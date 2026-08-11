@@ -55,5 +55,11 @@ export async function callOpenAIModel(input: ModelInput): Promise<ModelTurn> {
   return {
     text: response.output_text ?? "",
     functionCalls,
+    usage: {
+      inputTokens: response.usage?.input_tokens ?? 0,
+      cachedInputTokens:
+        response.usage?.input_tokens_details?.cached_tokens ?? 0,
+      outputTokens: response.usage?.output_tokens ?? 0,
+    },
   };
 }

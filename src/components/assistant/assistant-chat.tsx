@@ -28,6 +28,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { formatUsd } from "@/lib/ai/pricing";
 import { cn } from "@/lib/utils";
 
 type ChatMessage = {
@@ -56,6 +57,8 @@ export function AssistantChat({
   const [messages, setMessages] = React.useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = React.useState("");
   const [pending, setPending] = React.useState<AskResult | null>(null);
+  // Toujours renseigné après une réponse, même sans action proposée.
+  const [lastResult, setLastResult] = React.useState<AskResult | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isSending, startSending] = React.useTransition();
   const [isExecuting, startExecuting] = React.useTransition();
@@ -87,6 +90,8 @@ export function AssistantChat({
         setError(result.error ?? "Réponse indisponible.");
         return;
       }
+
+      setLastResult(result.data);
 
       if (result.data.message) {
         setMessages((prev) => [
@@ -146,6 +151,31 @@ export function AssistantChat({
 
   return (
     <div className="flex flex-col gap-4">
+      {lastResult ? (
+        <p className="text-xs text-muted-foreground">
+          Coût de la dernière demande :{" "}
+          <strong className="text-foreground">
+            {formatUsd(lastResult.costUsd)}
+          </strong>{" "}
+          · ce mois-ci : {formatUsd(lastResult.budget.spentThisMonthUsd)}
+          {lastResult.budget.creditUsd > 0 ? (
+            <>
+              {" "}
+              · restant estimé :{" "}
+              <strong
+                className={
+                  lastResult.budget.isLow
+                    ? "text-destructive"
+                    : "text-foreground"
+                }
+              >
+                {formatUsd(lastResult.budget.remainingUsd)}
+              </strong>
+            </>
+          ) : null}
+        </p>
+      ) : null}
+
       {!isConfigured ? (
         <Card className="border-destructive/40">
           <CardHeader>

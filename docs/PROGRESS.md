@@ -44,9 +44,29 @@
   négatives, URL), JSON illisible, boucle bornée, actions multiples, et
   contenu de la consigne système.
 
+### Compteur de coût IA (ajout demandé en cours de phase)
+
+- **Migration 6** : jetons et coût par demande dans `ai_requests`
+  (`model`, `input_tokens`, `cached_input_tokens`, `output_tokens`,
+  `cost_usd`) + table `ai_budget` (crédit déclaré, date de rechargement,
+  seuil d'alerte, tarifs modifiables).
+- Coût **mesuré réellement** à partir des jetons retournés par l'API, cumulé
+  sur tous les allers-retours d'une même demande.
+- Affichage : coût de la dernière demande et consommation du mois dans le
+  chat ; compteur complet (mois, depuis rechargement, crédit, restant estimé,
+  barre de progression) en haut de `/assistant` ; détail des 10 dernières
+  demandes et réglages dans `/parametres`.
+- **Alerte à 2 $ restants** (seuil configurable) et **mise en pause de
+  l'assistant** si le crédit estimé atteint zéro.
+- Limite assumée et affichée : l'API OpenAI n'expose pas le solde du compte,
+  le « restant » est donc une estimation fondée sur le crédit déclaré (D-020).
+- 17 tests dédiés au calcul de coût, aux seuils d'alerte et au formatage.
+
 ### Problèmes connus
 
-- Migration 5 à appliquer par l'utilisateur dans le SQL Editor.
+- Migrations 5 et 6 à appliquer par l'utilisateur dans le SQL Editor.
+- Les tarifs par défaut doivent être vérifiés sur la page Tarifs d'OpenAI et
+  ajustés dans les réglages : ils évoluent régulièrement.
 - `OPENAI_API_KEY` à renseigner dans `.env.local` pour utiliser l'assistant
   (l'interface l'indique clairement si elle est absente).
 - Toujours aucun test en conditions réelles (réseau bloqué dans

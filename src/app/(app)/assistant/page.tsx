@@ -5,6 +5,8 @@ import { MessagesSquare, Plus } from "lucide-react";
 
 import { createConversation } from "@/actions/ai";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
+import { BudgetMeter } from "@/components/assistant/budget-meter";
+import { loadBudgetState } from "@/lib/ai/budget";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { isOpenAIConfigured } from "@/lib/ai/openai";
@@ -24,6 +26,7 @@ export default async function AssistantPage({
   if (!user) redirect("/login");
 
   const supabase = await createClient();
+  const budget = await loadBudgetState(supabase, user.id);
   const [{ data: conversations }, { data: companies }] = await Promise.all([
     supabase
       .from("ai_conversations")
@@ -90,6 +93,8 @@ export default async function AssistantPage({
           </Button>
         </form>
       </div>
+
+      <BudgetMeter budget={budget} />
 
       {list.length > 1 ? (
         <nav aria-label="Conversations" className="overflow-x-auto">
