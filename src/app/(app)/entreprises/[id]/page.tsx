@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  Clock,
-  Euro,
-  FolderKanban,
-  Pencil,
-  Plus,
-} from "lucide-react";
+import { Clock, FolderKanban, Pencil, Plus } from "lucide-react";
 
 import { CompanyArchiveButton } from "@/components/companies/company-archive-button";
 import { CompanyFormDialog } from "@/components/companies/company-form-dialog";
+import { ContactsPanel } from "@/components/contacts/contacts-panel";
+import type { ChannelRow } from "@/components/contacts/channel-form-dialog";
+import type { ContactRow } from "@/components/contacts/contact-form-dialog";
+import {
+  DocumentsPanel,
+  type DocumentRow,
+} from "@/components/documents/documents-panel";
+import { ResourcesPanel } from "@/components/resources/resources-panel";
+import type { ResourceRow } from "@/components/resources/resource-form-dialog";
 import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
 import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
 import { TaskRow } from "@/components/tasks/task-row";
@@ -67,6 +70,10 @@ export default async function CompanyPage({
     { data: tasks },
     { data: timeMonth },
     { data: logs },
+    { data: contacts },
+    { data: channels },
+    { data: resources },
+    { data: documents },
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -90,6 +97,29 @@ export default async function CompanyPage({
       .eq("company_id", id)
       .order("created_at", { ascending: false })
       .limit(tab === "historique" ? 100 : 6),
+    supabase
+      .from("company_contacts")
+      .select()
+      .eq("company_id", id)
+      .order("is_active", { ascending: false })
+      .order("name"),
+    supabase
+      .from("company_channels")
+      .select()
+      .eq("company_id", id)
+      .order("is_default", { ascending: false })
+      .order("label"),
+    supabase
+      .from("company_resources")
+      .select()
+      .eq("company_id", id)
+      .order("sort_order")
+      .order("created_at"),
+    supabase
+      .from("company_documents")
+      .select()
+      .eq("company_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   const projectList = (projects ?? []) as Project[];
@@ -440,22 +470,36 @@ export default async function CompanyPage({
         </Card>
       ) : null}
 
-      {tab === "rapports" || tab === "contacts" || tab === "documents" || tab === "acces" ? (
+      {tab === "contacts" ? (
+        <ContactsPanel
+          companyId={company.id}
+          contacts={(contacts ?? []) as ContactRow[]}
+          channels={(channels ?? []) as ChannelRow[]}
+        />
+      ) : null}
+
+      {tab === "acces" ? (
+        <ResourcesPanel
+          companyId={company.id}
+          resources={(resources ?? []) as ResourceRow[]}
+          showArchived
+        />
+      ) : null}
+
+      {tab === "documents" ? (
+        <DocumentsPanel
+          companyId={company.id}
+          documents={(documents ?? []) as DocumentRow[]}
+        />
+      ) : null}
+
+      {tab === "rapports" ? (
         <Card>
           <CardHeader>
-            <CardTitle>
-              <Euro className="mr-2 inline size-4" aria-hidden />
-              Bientôt disponible
-            </CardTitle>
+            <CardTitle>Bientôt disponible</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            {tab === "rapports"
-              ? "Les rapports hebdomadaires et mensuels arrivent en phase 5."
-              : tab === "contacts"
-                ? "Les contacts et destinations WhatsApp arrivent en phase 4."
-                : tab === "documents"
-                  ? "Les documents et livrables arrivent en phase 4."
-                  : "Le centre d'accès rapides arrive en phase 4."}
+            Les rapports hebdomadaires et mensuels arrivent en phase 5.
           </CardContent>
         </Card>
       ) : null}

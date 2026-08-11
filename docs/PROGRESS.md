@@ -2,7 +2,52 @@
 
 > État utile pour reprendre le travail. Mis à jour à la fin de chaque phase.
 
-## Phase actuelle : 3 terminée — phase 4 en cours (rythme accéléré demandé)
+## Phase actuelle : 4 terminée — phase 5 (rapports) à suivre
+
+## Phase 4 · Ressources et documents — ✅ terminée (2026-08-11)
+
+### Réalisé
+
+- **Contacts** par entreprise : coordonnées, rôle, numéro WhatsApp validé au
+  format international, canal préféré, archivage.
+- **Destinations de communication** (`company_channels`) : WhatsApp direct
+  (numéro international obligatoire), groupe WhatsApp (nom obligatoire, avec
+  avertissement explicite qu'aucun ciblage automatique n'est possible), email,
+  autre ; canal par défaut unique par entreprise (garanti en base et côté
+  serveur) ; bouton d'ouverture WhatsApp pour les numéros valides.
+- **Centre d'accès rapides** : 24 catégories regroupées en 4 familles,
+  recherche, favoris, réordonnancement (haut/bas), archivage, ouverture en
+  nouvel onglet (`rel="noopener noreferrer"`), marquage « vérifié ».
+  Page globale `/ressources` avec sélecteur d'entreprise + onglet dans le
+  cockpit.
+- **Refus des secrets en base** : les champs description, notes d'accès et
+  identifiant rejettent tout ce qui ressemble à un mot de passe, une clé API,
+  un jeton ou un code de récupération (validation Zod + avertissement visible).
+- **Documents** : téléversement dans le bucket privé `documents`
+  (chemin `<user_id>/<company_id>/<horodatage>-<nom nettoyé>`), liens externes,
+  archivage, suppression définitive avec confirmation, consultation par **URL
+  signée valable 5 minutes**. Limites : 25 Mo, liste blanche de types MIME.
+  Page globale `/documents` + onglet dans le cockpit.
+- **Migration 4** : politiques RLS sur `storage.objects` (chaque utilisateur
+  n'accède qu'à son propre dossier) + création du bucket privé en filet de
+  sécurité.
+- **Tests** : 44 au total (26 nouveaux) — liens WhatsApp déterministes,
+  validation des numéros internationaux, règles des canaux, refus des secrets,
+  limites d'upload, nettoyage des noms de fichiers (dont tentative de remontée
+  de dossier).
+
+### Vérifications
+
+- `lint` ✅ · `typecheck` ✅ · `test` ✅ (44/44) · `build` ✅.
+- Trois bugs réels trouvés et corrigés grâce aux tests : intersection Zod qui
+  rendait les champs facultatifs obligatoires, `..` conservé dans les noms de
+  fichiers, et test d'accents mal écrit.
+
+### Problèmes connus
+
+- Toujours aucun test en conditions réelles contre Supabase (réseau bloqué
+  ici). À faire au premier lancement local.
+- Migrations 3 et 4 à appliquer par l'utilisateur dans le SQL Editor.
 
 ## Phase 3 · Pilotage — ✅ terminée (2026-08-11)
 
