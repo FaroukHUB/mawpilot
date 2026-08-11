@@ -2,7 +2,39 @@
 
 > État utile pour reprendre le travail. Mis à jour à la fin de chaque phase.
 
-## Phase actuelle : 8 terminée — MVP complet, en attente du premier essai réel
+## État : MVP complet, déployé et vérifié en conditions réelles ✅
+
+**Production** : <https://mawpilot-rose.vercel.app> (Vercel, branche
+`claude/maw-pilot-architecture-mvp-0q0sb9`, déploiement automatique à chaque
+push).
+
+Les 8 phases sont terminées. Le parcours principal a été vérifié par
+l'utilisateur sur l'application déployée le 2026-08-11 : connexion, création
+d'entreprise, création de tâche, saisie de temps, assistant texte, dictée
+vocale et génération de rapport.
+
+> **Les réserves « aucun test en conditions réelles » mentionnées dans les
+> phases 2 à 8 sont donc levées.** Elles venaient du fait que l'environnement
+> de développement distant bloquait l'accès réseau à Supabase et à OpenAI ;
+> les vérifications y étaient statiques (lint, typecheck, 124 tests, build).
+
+### Correctif post-déploiement
+
+- `output: "standalone"` faisait échouer le build Vercel à l'étape
+  `onBuildComplete` : Vercel construit Next.js nativement et n'attend pas ce
+  format. Le mode est désormais conditionnel (`process.env.VERCEL`), ce qui
+  préserve le déploiement Docker portable. Vérifié dans les deux sens.
+
+### À faire par l'utilisateur
+
+1. **Paramètres → Budget de l'assistant** : saisir le crédit OpenAI rechargé
+   et recopier les tarifs réels de `gpt-5-mini` (les valeurs par défaut
+   correspondent à un modèle plus cher : le compteur surestime tant qu'elles
+   ne sont pas ajustées).
+2. Installer l'application sur le téléphone (« Ajouter à l'écran d'accueil »).
+3. Utiliser l'outil quelques semaines avant d'ajouter des fonctionnalités.
+
+## Phase 8 · Finition — ✅ terminée (2026-08-11)
 
 ## Phase 8 · Finition — ✅ terminée (2026-08-11)
 

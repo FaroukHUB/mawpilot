@@ -60,10 +60,10 @@ et les écritures exigent une confirmation humaine.
 - **Le service worker ne met en cache que les icônes et le manifest.** Mettre
   en cache des pages authentifiées exposerait des données privées sur un
   appareil partagé — c'est volontairement exclu.
-- **Aucun test en conditions réelles** n'a pu être fait depuis l'environnement
-  de développement distant (réseau bloqué vers Supabase et OpenAI). Les
-  vérifications ci-dessus sont statiques ou faites en base ; refaire un essai
-  manuel complet au premier déploiement.
+- Les contrôles ci-dessus sont **statiques** (analyse du code) ou faits **en
+  base** (RLS, politiques). Le parcours applicatif a été vérifié manuellement
+  après déploiement, mais aucun test d'intrusion n'a été mené. Refaire cet
+  audit avant toute ouverture à d'autres utilisateurs (portail client).
 - **Rotation des clés** : si une clé OpenAI ou Supabase a été exposée, la
   révoquer sur la plateforme concernée et la remplacer dans `.env.local` et
   chez l'hébergeur.
