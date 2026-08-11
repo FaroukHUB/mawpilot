@@ -16,6 +16,7 @@ type BudgetFormValues = {
   price_input_per_million: string;
   price_cached_input_per_million: string;
   price_output_per_million: string;
+  price_transcription_per_minute: string;
   reset_counter: boolean;
 };
 
@@ -132,6 +133,19 @@ export function BudgetForm({
               {...register("price_output_per_million")}
             />
           </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="price-transcription">
+            Transcription ($ par minute d&apos;audio)
+          </Label>
+          <Input
+            id="price-transcription"
+            type="number"
+            min="0"
+            step="0.001"
+            className="sm:max-w-48"
+            {...register("price_transcription_per_minute")}
+          />
         </div>
       </fieldset>
 

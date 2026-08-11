@@ -146,6 +146,49 @@ export async function updateReport(
   return { data: { id: reportId } };
 }
 
+/**
+ * Enregistre une dictée sur un rapport : la transcription brute est conservée
+ * telle quelle (traçabilité), la version corrigée par l'utilisateur alimente
+ * une section. L'IA n'ajoute aucun fait — elle ne fait que mettre en forme
+ * ce qui a été dicté.
+ */
+export async function saveReportDictation(
+  reportId: string,
+  rawDictation: string,
+  correctedText: string
+): Promise<ActionResult<{ id: string }>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée, reconnectez-vous." };
+
+  const { data: report } = await supabase
+    .from("reports")
+    .select("id, raw_dictation")
+    .eq("id", reportId)
+    .eq("user_id", user.id)
+    .single();
+  if (!report) return { error: "Rapport introuvable." };
+
+  // On empile les dictées successives plutôt que d'écraser la précédente.
+  const previous = report.raw_dictation ? `${report.raw_dictation}\n\n` : "";
+
+  const { error } = await supabase
+    .from("reports")
+    .update({
+      raw_dictation: `${previous}${rawDictation}`.slice(0, 20000),
+      corrected_transcription: correctedText.slice(0, 20000),
+    })
+    .eq("id", reportId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: "Enregistrement impossible : " + error.message };
+
+  revalidatePath(`/rapports/${reportId}`);
+  return { data: { id: reportId } };
+}
+
 /** Régénère le message WhatsApp depuis les faits figés et le contenu courant. */
 export async function regenerateWhatsAppText(
   reportId: string

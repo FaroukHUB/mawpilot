@@ -14,6 +14,7 @@ const rates: PricingRates = {
   inputPerMillion: 1.25,
   cachedInputPerMillion: 0.125,
   outputPerMillion: 10,
+  transcriptionPerMinute: 0.006,
 };
 
 describe("computeCost", () => {

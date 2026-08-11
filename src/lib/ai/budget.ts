@@ -50,6 +50,10 @@ export async function loadBudgetSettings(
       outputPerMillion: Number(
         data.price_output_per_million ?? DEFAULT_RATES.outputPerMillion
       ),
+      transcriptionPerMinute: Number(
+        data.price_transcription_per_minute ??
+          DEFAULT_RATES.transcriptionPerMinute
+      ),
     },
   };
 }

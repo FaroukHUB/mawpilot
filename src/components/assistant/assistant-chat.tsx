@@ -19,6 +19,7 @@ import {
   confirmAiActions,
   type AskResult,
 } from "@/actions/ai";
+import { VoiceRecorder } from "@/components/assistant/voice-recorder";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -56,6 +57,7 @@ export function AssistantChat({
   const router = useRouter();
   const [messages, setMessages] = React.useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = React.useState("");
+  const [voiceNotice, setVoiceNotice] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState<AskResult | null>(null);
   // Toujours renseigné après une réponse, même sans action proposée.
   const [lastResult, setLastResult] = React.useState<AskResult | null>(null);
@@ -72,6 +74,7 @@ export function AssistantChat({
     const trimmed = text.trim();
     if (!trimmed || isSending) return;
     setError(null);
+    setVoiceNotice(null);
     setPending(null);
     setInput("");
     setMessages((prev) => [
@@ -348,35 +351,56 @@ export function AssistantChat({
           e.preventDefault();
           send(input);
         }}
-        className="sticky bottom-0 flex gap-2 border-t bg-background pt-3"
+        className="sticky bottom-0 flex flex-col gap-2 border-t bg-background pt-3"
       >
-        <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send(input);
-            }
-          }}
-          placeholder="Écrivez votre demande…"
-          rows={2}
+        {voiceNotice ? (
+          <p className="text-xs text-muted-foreground">{voiceNotice}</p>
+        ) : null}
+        <div className="flex gap-2">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send(input);
+              }
+            }}
+            placeholder="Écrivez votre demande, ou dictez-la avec le micro…"
+            rows={2}
+            disabled={!isConfigured || isSending}
+            aria-label="Message pour l'assistant"
+            className="flex-1"
+          />
+          <Button
+            type="submit"
+            disabled={!isConfigured || isSending || input.trim() === ""}
+            aria-label="Envoyer"
+            className="self-end"
+          >
+            {isSending ? (
+              <Loader2 className="animate-spin" aria-hidden />
+            ) : (
+              <Send aria-hidden />
+            )}
+          </Button>
+        </div>
+        <VoiceRecorder
           disabled={!isConfigured || isSending}
-          aria-label="Message pour l'assistant"
-          className="flex-1"
+          onError={(message) => {
+            setError(message);
+            setVoiceNotice(null);
+          }}
+          onTranscribed={({ text, costLabel }) => {
+            setError(null);
+            // La transcription arrive dans le champ : elle est corrigeable
+            // avant envoi. Rien n'est déclenché automatiquement.
+            setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+            setVoiceNotice(
+              `Transcription ajoutée${costLabel ? ` (${costLabel})` : ""} — corrigez-la si besoin, puis envoyez.`
+            );
+          }}
         />
-        <Button
-          type="submit"
-          disabled={!isConfigured || isSending || input.trim() === ""}
-          aria-label="Envoyer"
-          className="self-end"
-        >
-          {isSending ? (
-            <Loader2 className="animate-spin" aria-hidden />
-          ) : (
-            <Send aria-hidden />
-          )}
-        </Button>
       </form>
     </div>
   );

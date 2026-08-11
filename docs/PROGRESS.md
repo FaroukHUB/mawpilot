@@ -2,7 +2,44 @@
 
 > État utile pour reprendre le travail. Mis à jour à la fin de chaque phase.
 
-## Phase actuelle : 6 terminée — phase 7 (assistant vocal) à suivre
+## Phase actuelle : 7 terminée — phase 8 (finition) à suivre
+
+## Phase 7 · Assistant vocal — ✅ terminée (2026-08-11)
+
+### Réalisé
+
+- **Chaîne vocale complète** : bouton micro → `MediaRecorder` → route serveur
+  `/api/ai/transcribe` → transcription OpenAI → **texte affiché dans le champ
+  pour correction** → envoi au même moteur d'interprétation que le texte →
+  prévisualisation → confirmation → exécution transactionnelle → journal.
+  **Aucune action n'est jamais déclenchée directement par la voix.**
+- **Bouton micro identifiable** : libellé explicite, minuteur pendant
+  l'enregistrement, pastille rouge clignotante, `aria-label` et `aria-pressed`,
+  arrêt automatique à 5 minutes.
+- **Sécurité de l'audio** : liste blanche de types MIME (normalisés car
+  `MediaRecorder` ajoute un suffixe de codec), 10 Mo et 5 minutes maximum,
+  vérification d'authentification, limitation anti-abus partagée avec le texte.
+- **Dictée des rapports** : bloc dédié dans l'éditeur — la transcription brute
+  est conservée (`raw_dictation`, empilée), la version corrigée est éditable
+  puis insérée dans la section choisie (`corrected_transcription`). L'IA
+  n'ajoute aucun fait.
+- **Coût de la dictée** : migration 7 (tarif à la minute d'audio, modifiable),
+  chaque transcription tracée dans `ai_requests` et comptée dans le budget ;
+  refus si le crédit déclaré est épuisé.
+- Messages d'erreur explicites : micro refusé, navigateur incompatible,
+  enregistrement trop court, rien compris.
+
+### Vérifications
+
+- `lint` ✅ · `typecheck` ✅ · `test` ✅ (124/124, dont 14 nouveaux sur la
+  validation audio et le coût de transcription) · `build` ✅.
+
+### Problèmes connus
+
+- Migration 7 à appliquer par l'utilisateur.
+- Le parcours vocal n'a pas pu être testé en conditions réelles ici (ni micro,
+  ni accès réseau à OpenAI dans l'environnement distant) : à valider au
+  premier essai local.
 
 ## Phase 6 · Assistant texte — ✅ terminée (2026-08-11)
 

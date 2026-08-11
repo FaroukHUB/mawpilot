@@ -12,6 +12,7 @@ const budgetSchema = z.object({
   price_input_per_million: z.coerce.number().min(0).max(10000),
   price_cached_input_per_million: z.coerce.number().min(0).max(10000),
   price_output_per_million: z.coerce.number().min(0).max(10000),
+  price_transcription_per_minute: z.coerce.number().min(0).max(100),
   /** Vrai quand l'utilisateur vient de recharger : on repart de zéro. */
   reset_counter: z.coerce.boolean().default(false),
 });

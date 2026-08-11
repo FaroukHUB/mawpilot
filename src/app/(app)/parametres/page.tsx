@@ -93,6 +93,9 @@ export default async function SettingsPage() {
               price_output_per_million: String(
                 budget.settings.rates.outputPerMillion
               ),
+              price_transcription_per_minute: String(
+                budget.settings.rates.transcriptionPerMinute
+              ),
               reset_counter: false,
             }}
           />

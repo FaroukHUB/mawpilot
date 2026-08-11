@@ -6,6 +6,7 @@ import {
   Database,
   FileDown,
   Loader2,
+  Mic,
   Plus,
   Printer,
   RefreshCw,
@@ -13,8 +14,14 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { regenerateWhatsAppText, updateReport } from "@/actions/reports";
+import {
+  regenerateWhatsAppText,
+  saveReportDictation,
+  updateReport,
+} from "@/actions/reports";
+import { VoiceRecorder } from "@/components/assistant/voice-recorder";
 import { ReportSharePanel } from "@/components/reports/report-share-panel";
+import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -123,6 +130,38 @@ export function ReportEditor({
   const [error, setError] = React.useState<string | null>(null);
   const [saved, setSaved] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
+
+  // Dictée : transcription brute conservée, version corrigée éditable.
+  const [rawDictation, setRawDictation] = React.useState("");
+  const [dictation, setDictation] = React.useState("");
+  const [dictationNotice, setDictationNotice] = React.useState<string | null>(
+    null
+  );
+  const [dictationTarget, setDictationTarget] =
+    React.useState<ReportSectionKey>("resume");
+
+  function insertDictation() {
+    const text = dictation.trim();
+    if (!text) return;
+    setError(null);
+
+    const target = content.sections.find((s) => s.key === dictationTarget);
+    const merged = target?.text ? `${target.text}\n${text}` : text;
+    updateSection(dictationTarget, { included: true, text: merged });
+
+    startTransition(async () => {
+      const result = await saveReportDictation(reportId, rawDictation, text);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setDictation("");
+      setRawDictation("");
+      setDictationNotice(
+        `Texte inséré dans « ${reportSectionLabels[dictationTarget]} ». Pensez à enregistrer.`
+      );
+    });
+  }
 
   function updateSection(key: ReportSectionKey, patch: Partial<{ included: boolean; text: string }>) {
     setSaved(false);
@@ -248,6 +287,83 @@ export function ReportEditor({
             </p>
           </CardContent>
         ) : null}
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mic className="size-4" aria-hidden />
+            Dicter des précisions
+          </CardTitle>
+          <CardDescription>
+            Parlez librement : la transcription s&apos;affiche ci-dessous pour
+            correction, puis vous choisissez la section où l&apos;insérer. Rien
+            n&apos;est ajouté au rapport sans votre validation.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <VoiceRecorder
+            label="Dicter"
+            onError={(message) => setError(message)}
+            onTranscribed={({ text, costLabel }) => {
+              setError(null);
+              setRawDictation((prev) => (prev ? `${prev}\n${text}` : text));
+              setDictation((prev) => (prev ? `${prev} ${text}` : text));
+              setDictationNotice(
+                `Transcription ajoutée${costLabel ? ` (${costLabel})` : ""} — corrigez-la avant de l'insérer.`
+              );
+            }}
+          />
+          {dictationNotice ? (
+            <p className="text-xs text-muted-foreground">{dictationNotice}</p>
+          ) : null}
+          {dictation ? (
+            <>
+              <Textarea
+                rows={4}
+                value={dictation}
+                onChange={(e) => setDictation(e.target.value)}
+                aria-label="Transcription à corriger"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={dictationTarget}
+                  onChange={(e) =>
+                    setDictationTarget(e.target.value as ReportSectionKey)
+                  }
+                  aria-label="Section de destination"
+                  className="w-auto"
+                >
+                  {content.sections
+                    .filter((s) => s.key !== "tableau")
+                    .map((s) => (
+                      <option key={s.key} value={s.key}>
+                        {reportSectionLabels[s.key]}
+                      </option>
+                    ))}
+                </Select>
+                <Button size="sm" onClick={insertDictation} disabled={isPending}>
+                  {isPending ? (
+                    <Loader2 className="animate-spin" aria-hidden />
+                  ) : (
+                    <Check aria-hidden />
+                  )}
+                  Insérer dans la section
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setDictation("");
+                    setDictationNotice(null);
+                  }}
+                >
+                  Effacer
+                </Button>
+              </div>
+            </>
+          ) : null}
+        </CardContent>
       </Card>
 
       <Card>

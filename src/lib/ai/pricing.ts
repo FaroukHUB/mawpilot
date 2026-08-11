@@ -20,13 +20,28 @@ export type PricingRates = {
   cachedInputPerMillion: number;
   /** Dollars par million de jetons de sortie. */
   outputPerMillion: number;
+  /** Dollars par minute d'audio transcrit. */
+  transcriptionPerMinute: number;
 };
 
 export const DEFAULT_RATES: PricingRates = {
   inputPerMillion: 1.25,
   cachedInputPerMillion: 0.125,
   outputPerMillion: 10,
+  transcriptionPerMinute: 0.006,
 };
+
+/**
+ * Coût d'une transcription, facturée à la durée d'audio.
+ * La durée est mesurée côté navigateur pendant l'enregistrement.
+ */
+export function computeTranscriptionCost(
+  durationSeconds: number,
+  rates: PricingRates
+): number {
+  const minutes = Math.max(0, durationSeconds) / 60;
+  return Math.round(minutes * rates.transcriptionPerMinute * 1_000_000) / 1_000_000;
+}
 
 export const EMPTY_USAGE: TokenUsage = {
   inputTokens: 0,
