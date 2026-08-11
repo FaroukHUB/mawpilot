@@ -4,29 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { logActivity } from "@/lib/activity";
+// Les constantes vivent dans un module neutre : un fichier "use server" ne
+// doit exporter QUE des fonctions asynchrones (voir src/lib/memories.ts).
+import { MEMORY_CATEGORIES } from "@/lib/memories";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/actions/companies";
-
-export const MEMORY_CATEGORIES = [
-  "contexte_client",
-  "preference",
-  "consigne",
-  "technique",
-  "commercial",
-  "autre",
-] as const;
-
-export const memoryCategoryLabels: Record<
-  (typeof MEMORY_CATEGORIES)[number],
-  string
-> = {
-  contexte_client: "Contexte client",
-  preference: "Préférence",
-  consigne: "Consigne",
-  technique: "Technique",
-  commercial: "Commercial",
-  autre: "Autre",
-};
 
 const memorySchema = z.object({
   company_id: z.uuid("Entreprise invalide."),

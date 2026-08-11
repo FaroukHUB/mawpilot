@@ -14,8 +14,6 @@ import {
 import {
   confirmMemory,
   deleteMemory,
-  MEMORY_CATEGORIES,
-  memoryCategoryLabels,
   saveMemory,
   setMemoryArchived,
 } from "@/actions/memories";
@@ -31,23 +29,14 @@ import {
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDateShort } from "@/lib/dates";
+import {
+  MEMORY_CATEGORIES,
+  memoryCategoryLabel,
+  memorySourceLabel,
+  type MemoryRow,
+} from "@/lib/memories";
 
-export type MemoryRow = {
-  id: string;
-  company_id: string;
-  content: string;
-  category: (typeof MEMORY_CATEGORIES)[number];
-  source: "utilisateur" | "ia_confirmee" | "donnees";
-  status: "confirmee" | "a_verifier";
-  is_archived: boolean;
-  created_at: string;
-};
-
-const sourceLabels: Record<MemoryRow["source"], string> = {
-  utilisateur: "Vous",
-  ia_confirmee: "Assistant (confirmé)",
-  donnees: "Déduit des données",
-};
+export type { MemoryRow };
 
 export function MemoriesPanel({
   companyId,
@@ -61,8 +50,13 @@ export function MemoriesPanel({
   const [error, setError] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
 
-  const active = memories.filter((m) => !m.is_archived);
-  const archived = memories.filter((m) => m.is_archived);
+  // Défense en profondeur : si la requête échoue ou renvoie autre chose
+  // qu'une liste, l'écran affiche un état vide plutôt que de planter.
+  const safeMemories = Array.isArray(memories) ? memories : [];
+  const dataIssue = !Array.isArray(memories);
+
+  const active = safeMemories.filter((m) => !m.is_archived);
+  const archived = safeMemories.filter((m) => m.is_archived);
 
   function add() {
     if (content.trim() === "") return;
@@ -113,7 +107,7 @@ export function MemoriesPanel({
             >
               {MEMORY_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
-                  {memoryCategoryLabels[c]}
+                  {memoryCategoryLabel(c)}
                 </option>
               ))}
             </Select>
@@ -134,10 +128,19 @@ export function MemoriesPanel({
         </CardContent>
       </Card>
 
-      {active.length === 0 && archived.length === 0 ? (
+      {dataIssue ? (
+        <Card className="border-destructive/40">
+          <CardContent className="py-4 text-sm text-destructive" role="alert">
+            Les informations retenues n&apos;ont pas pu être chargées. Rechargez
+            la page ; si le problème persiste, les données restent intactes en
+            base.
+          </CardContent>
+        </Card>
+      ) : safeMemories.length === 0 ? (
         <Card>
           <CardContent className="py-6 text-center text-sm text-muted-foreground">
-            Aucune information retenue pour cette entreprise.
+            Aucune information retenue pour cette entreprise. Ajoutez-en une
+            ci-dessus, ou demandez à l&apos;assistant de retenir quelque chose.
           </CardContent>
         </Card>
       ) : (
@@ -152,8 +155,8 @@ export function MemoriesPanel({
               <div className="min-w-0 flex-1">
                 <p className="text-sm">{memory.content}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {memoryCategoryLabels[memory.category]} ·{" "}
-                  {sourceLabels[memory.source]} ·{" "}
+                  {memoryCategoryLabel(memory.category)} ·{" "}
+                  {memorySourceLabel(memory.source)} ·{" "}
                   {formatDateShort(memory.created_at)}
                 </p>
               </div>
@@ -168,7 +171,8 @@ export function MemoriesPanel({
                     disabled={isPending}
                     onClick={() =>
                       startTransition(async () => {
-                        await confirmMemory(memory.id);
+                        const result = await confirmMemory(memory.id);
+                        if (result.error) setError(result.error);
                       })
                     }
                   >
@@ -191,7 +195,11 @@ export function MemoriesPanel({
                 }
                 onClick={() =>
                   startTransition(async () => {
-                    await setMemoryArchived(memory.id, !memory.is_archived);
+                    const result = await setMemoryArchived(
+                      memory.id,
+                      !memory.is_archived
+                    );
+                    if (result.error) setError(result.error);
                   })
                 }
               >
