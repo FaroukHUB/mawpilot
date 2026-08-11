@@ -220,3 +220,55 @@ Le coût dépensé est donc exact ; le « restant » est explicitement présent�
 comme une **estimation**. Alerte configurable (2 $ par défaut) et **mise en
 pause automatique de l'assistant** quand le crédit estimé atteint zéro, plutôt
 que de laisser filer la facture. Migration 6.
+
+## D-021 · Planificateur : `pg_cron` dans Supabase, pas Vercel Cron
+
+**Date** : 2026-08-11 · **Statut** : exigé par l'utilisateur (déclenchement
+application fermée).
+
+Vercel Cron est limité à **un déclenchement par jour** sur l'offre gratuite :
+impossible d'honorer « rappelle-moi vendredi à 15 h ». Retenu : **`pg_cron`
+dans Supabase**, qui tourne en permanence indépendamment de l'hébergeur.
+Toutes les 5 minutes, `pg_cron` appelle `/api/cron/tick` via `pg_net`.
+
+- **Secrets dans Supabase Vault** : l'URL et le secret partagé sont stockés
+  chiffrés (`vault.create_secret`) et lus par une fonction `security definer`
+  révoquée pour `anon` et `authenticated`. Aucun secret en clair dans un job.
+- **Authentification de la route** : en-tête `Authorization: Bearer`, comparé
+  en temps constant (`timingSafeEqual`).
+- **Idempotence** : contrainte d'unicité sur
+  `automation_runs (source_type, source_id, occurrence_key)`. Un double
+  déclenchement de la même occurrence est ignoré sans effet de bord.
+- **Client d'administration** : le worker traite des rappels sans session, il
+  utilise donc `SUPABASE_SERVICE_ROLE_KEY` — strictement serveur, isolé dans
+  `src/lib/supabase/admin.ts`, jamais importé côté client.
+- Migration 9. Fallback documenté : si `pg_cron` était indisponible, un
+  service d'appel HTTP externe pourrait viser la même route.
+
+## D-022 · Notifications : push PWA d'abord, email en secours
+
+**Date** : 2026-08-11 · **Statut** : exigé par l'utilisateur.
+Un centre de notifications interne ne suffit pas : il faut être prévenu
+**application fermée**. Chaîne retenue :
+
+1. trace interne systématique (`notifications`) ;
+2. **Web Push** vers tous les appareils enregistrés (fonctionne fermé ; sur
+   iPhone, exige que la PWA soit installée sur l'écran d'accueil) ;
+3. **email de secours uniquement si le push n'a atteint aucun appareil** —
+   pas de double alerte. Forçable pour les cas critiques.
+
+Clés VAPID générées hors ligne (`npm run generate:vapid`), clé privée côté
+serveur. Email par appel HTTP direct à Resend : aucune dépendance ajoutée.
+Un abonnement expiré (404/410) est supprimé automatiquement.
+
+## D-023 · Cohérence des données à la création d'une entreprise
+
+**Date** : 2026-08-11 · **Statut** : audit, priorité 4.
+Un contact saisi dans la fiche entreprise n'apparaissait pas dans l'onglet
+Contacts. Désormais, à la création comme à la modification, l'application crée
+— si absent — le **contact principal** et l'**accès rapide du site**.
+La synchronisation est **additive et idempotente** : elle ne crée jamais de
+doublon et n'écrase jamais une donnée existante. Une action de rattrapage
+(`syncAllCompaniesConsistency`) traite les entreprises créées avant la règle.
+Même logique appliquée dans `execute_ai_actions` (migration 10) pour les
+créations dictées.

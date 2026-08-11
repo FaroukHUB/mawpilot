@@ -12,9 +12,55 @@ version déployée a donné 5 priorités ; voici leur avancement.
 |---|---|---|
 | 1 | Corriger la mémoire IA | ✅ livré |
 | 2 | Interface voice-first | ✅ livré |
-| 3 | Rappels, automatisations, notifications | à faire |
-| 4 | Cohérence des données (contact principal…) | à faire |
+| 3 | Rappels, automatisations, notifications | ✅ livré |
+| 4 | Cohérence des données (contact principal…) | ✅ livré |
 | 5 | Configuration des rapports + XLSX | à faire |
+
+### Priorité 3 — rappels, automatisations et notifications (2026-08-11)
+
+**Planificateur** (D-021) : `pg_cron` dans Supabase appelle `/api/cron/tick`
+toutes les 5 minutes via `pg_net`. Fonctionne **application fermée** et
+indépendamment de Vercel (dont l'offre gratuite limite le cron à un
+déclenchement par jour). Secrets stockés dans **Supabase Vault**, route
+authentifiée par comparaison à temps constant.
+
+**Idempotence** : contrainte d'unicité sur
+`automation_runs (source_type, source_id, occurrence_key)`. Un double
+déclenchement ne produit jamais deux notifications.
+
+**Notifications** (D-022) : trace interne → **push PWA** → **email de secours
+seulement si aucun appareil n'a été atteint**. Abonnements expirés supprimés
+automatiquement.
+
+**Automatisations disponibles** : briefing du matin, compte rendu du soir,
+préparation du brouillon de rapport hebdomadaire (avec notification « rapport
+prêt »), relance quand un client ne répond pas depuis N jours, alerte de temps
+non saisi. Aucune n'envoie quoi que ce soit à un client.
+
+**Par la voix** : `create_reminder` et `create_automation_rule` ajoutées au
+catalogue IA et à `execute_ai_actions` (migration 10) — « rappelle-moi vendredi
+à 15 h » et « chaque vendredi prépare le rapport de Trust » fonctionnent.
+Le calcul d'échéance reste côté application (fonctions pures testées).
+
+**Fichiers** : `lib/automations/{schedule,worker}.ts`,
+`lib/notifications/{push,email,dispatch}.ts`, `lib/supabase/admin.ts`,
+`app/api/cron/tick`, `app/api/push/subscribe`, `app/(app)/rappels`,
+`components/notifications/*`, `actions/reminders.ts`.
+**Migrations** : 8 (tables), 9 (pg_cron + Vault), 10 (actions IA).
+
+**Tests** : 23 nouveaux sur la planification — occurrences hebdomadaires et
+mensuelles, dernier jour du mois, changement d'heure, tolérance au retard du
+planificateur, stabilité des clés d'idempotence. 166 au total.
+
+### Priorité 4 — cohérence des données (2026-08-11)
+
+À la création **et** à la modification d'une entreprise, l'application crée
+maintenant, s'ils sont absents : le **contact principal** (dans
+`company_contacts`) et l'**accès rapide du site** (dans `company_resources`).
+Synchronisation **additive et idempotente** : jamais de doublon, jamais
+d'écrasement. Même logique dans `execute_ai_actions` pour les créations
+dictées. Une action `syncAllCompaniesConsistency` rattrape les entreprises
+déjà créées (cas Mobilier Malin / Jamel).
 
 ### Priorité 1 — mémoire IA corrigée (2026-08-11)
 

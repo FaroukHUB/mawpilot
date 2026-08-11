@@ -1,4 +1,5 @@
 import {
+  AlarmClock,
   Building2,
   Calendar,
   FileText,
@@ -23,6 +24,7 @@ export const navigation: NavItem[] = [
   { href: "/entreprises", label: "Entreprises", icon: Building2 },
   { href: "/taches", label: "Tâches", icon: ListChecks },
   { href: "/calendrier", label: "Calendrier", icon: Calendar },
+  { href: "/rappels", label: "Rappels", icon: AlarmClock },
   { href: "/historique", label: "Historique", icon: History },
   { href: "/rapports", label: "Rapports", icon: FileText },
   { href: "/documents", label: "Documents", icon: FolderOpen },

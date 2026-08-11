@@ -143,6 +143,39 @@ export const writeSchemas = {
     external_url: z.url(),
     description: optionalString,
   }),
+  create_reminder: z.object({
+    title: z.string().min(1),
+    body: optionalString,
+    company_id: uuid.optional(),
+    frequency: z
+      .enum(["ponctuel", "quotidien", "hebdomadaire", "mensuel"])
+      .default("ponctuel"),
+    /** Ponctuel : date et heure exactes, au format ISO local (Europe/Paris). */
+    run_at: optionalString,
+    /** Récurrent : heure au format HH:MM. */
+    time_of_day: optionalString,
+    /** 1 = lundi … 7 = dimanche. Requis pour un rappel hebdomadaire. */
+    day_of_week: z.number().int().min(1).max(7).optional(),
+    day_of_month: z.number().int().min(1).max(31).optional(),
+  }),
+  create_automation_rule: z.object({
+    kind: z.enum([
+      "briefing_matin",
+      "compte_rendu_soir",
+      "rapport_hebdo",
+      "relance_sans_reponse",
+      "saisie_temps_manquante",
+    ]),
+    company_id: uuid.optional(),
+    frequency: z
+      .enum(["ponctuel", "quotidien", "hebdomadaire", "mensuel"])
+      .default("quotidien"),
+    time_of_day: optionalString,
+    day_of_week: z.number().int().min(1).max(7).optional(),
+    day_of_month: z.number().int().min(1).max(31).optional(),
+    /** Ex. { "jours": 3 } pour une relance après trois jours sans réponse. */
+    params: z.record(z.string(), z.unknown()).optional(),
+  }),
   save_company_memory: z.object({
     company_id: uuid,
     content: z.string().min(1).max(2000),
@@ -206,6 +239,10 @@ const descriptions: Record<FunctionName, string> = {
   attach_company_document: "Ajouter un lien de document à une entreprise.",
   save_company_memory:
     "Retenir durablement une consigne ou préférence d'une entreprise. À n'utiliser QUE si l'utilisateur demande explicitement de retenir l'information ou confirme une proposition. Jamais pour des données déjà présentes (tâches, temps, rapports).",
+  create_reminder:
+    "Programmer un rappel personnel. Pour « rappelle-moi vendredi à 15 h », utiliser frequency='ponctuel' et run_at avec la date calculée au format AAAA-MM-JJTHH:MM. Pour « chaque vendredi », utiliser frequency='hebdomadaire', day_of_week=5 et time_of_day.",
+  create_automation_rule:
+    "Créer une automatisation récurrente : briefing du matin, compte rendu du soir, préparation automatique du rapport hebdomadaire (rapport_hebdo, exige company_id), relance quand un client ne répond pas, ou alerte de temps non saisi. Pour « chaque vendredi prépare le rapport de X », utiliser kind='rapport_hebdo', frequency='hebdomadaire', day_of_week=5.",
 };
 
 /**

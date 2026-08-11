@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { TZDate } from "@date-fns/tz";
+
 import { loadBudgetState } from "@/lib/ai/budget";
+import { computeNextRun } from "@/lib/automations/schedule";
+import { APP_TIMEZONE } from "@/lib/dates";
 import { buildRollingSummary, loadConversationContext, MAX_HISTORY_MESSAGES } from "@/lib/ai/context";
 import { runInterpretation, type ProposedAction } from "@/lib/ai/interpret";
 import { callOpenAIModel } from "@/lib/ai/model-caller";
@@ -315,8 +319,21 @@ export async function confirmAiActions(
     return { error: "Ces actions ont déjà été exécutées." };
   }
 
+  // Normalisation : l'IA exprime une date ou une récurrence ; la base attend
+  // une échéance calculée. Le calcul reste côté application (fonctions testées).
+  const actions: { name: string; arguments: Record<string, unknown> }[] = [];
+  for (const action of parsed.data.actions) {
+    if (action.name === "create_reminder") {
+      const normalized = normalizeReminderArguments(action.arguments);
+      if ("error" in normalized) return { error: normalized.error };
+      actions.push({ name: action.name, arguments: normalized.data });
+    } else {
+      actions.push(action);
+    }
+  }
+
   const { data, error } = await supabase.rpc("execute_ai_actions", {
-    p_actions: parsed.data.actions,
+    p_actions: actions,
     p_request_id: parsed.data.request_id,
     p_source: "ia",
   });
@@ -349,6 +366,65 @@ export async function confirmAiActions(
   revalidatePath("/taches");
   revalidatePath("/entreprises");
   return { data: { executed } };
+}
+
+/**
+ * Traduit les arguments d'un rappel proposé par l'IA en échéance concrète.
+ * `run_at` est interprété comme une heure locale (Europe/Paris), pas UTC :
+ * « vendredi à 15 h » doit rester 15 h pour l'utilisateur.
+ */
+function normalizeReminderArguments(
+  args: Record<string, unknown>
+): { data: Record<string, unknown> } | { error: string } {
+  const frequency = (args.frequency as string) || "ponctuel";
+  const timezone = (args.timezone as string) || APP_TIMEZONE;
+  const timeOfDay = (args.time_of_day as string) || "09:00";
+
+  if (frequency === "ponctuel") {
+    const runAt = args.run_at as string | undefined;
+    if (!runAt) {
+      return { error: "Le rappel n'a pas de date : reformulez la demande." };
+    }
+    // Une chaîne sans fuseau est comprise dans le fuseau de l'utilisateur.
+    const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(runAt);
+    const parsedDate = hasZone
+      ? new Date(runAt)
+      : new Date(new TZDate(new Date(runAt.replace(" ", "T")), timezone).getTime());
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return { error: `Date de rappel incompréhensible : « ${runAt} ».` };
+    }
+    if (parsedDate.getTime() <= Date.now()) {
+      return {
+        error:
+          "Ce rappel serait déjà passé. Précisez une date future (ex. « vendredi prochain à 15 h »).",
+      };
+    }
+    return {
+      data: { ...args, next_run_at: parsedDate.toISOString(), timezone },
+    };
+  }
+
+  const next = computeNextRun({
+    frequency: frequency as "quotidien" | "hebdomadaire" | "mensuel",
+    timeOfDay,
+    timezone,
+    dayOfWeek: (args.day_of_week as number) ?? null,
+    dayOfMonth: (args.day_of_month as number) ?? null,
+  });
+
+  if (!next) {
+    return { error: "Impossible de calculer l'échéance de ce rappel." };
+  }
+
+  return {
+    data: {
+      ...args,
+      next_run_at: next.toISOString(),
+      time_of_day: timeOfDay,
+      timezone,
+    },
+  };
 }
 
 /** Annule des actions proposées (aucune écriture n'a eu lieu). */

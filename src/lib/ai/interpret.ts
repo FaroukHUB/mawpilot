@@ -227,6 +227,37 @@ export function defaultDescribeAction(
       return `Ajouter le document « ${s("name")} »`;
     case "save_company_memory":
       return `Retenir : « ${s("content")} »`;
+    case "create_reminder": {
+      if (args.frequency && args.frequency !== "ponctuel") {
+        const days: Record<number, string> = {
+          1: "lundi",
+          2: "mardi",
+          3: "mercredi",
+          4: "jeudi",
+          5: "vendredi",
+          6: "samedi",
+          7: "dimanche",
+        };
+        const when =
+          args.frequency === "hebdomadaire"
+            ? `chaque ${days[Number(args.day_of_week)] ?? "semaine"}`
+            : args.frequency === "mensuel"
+              ? `le ${args.day_of_month} de chaque mois`
+              : "chaque jour";
+        return `Rappel « ${s("title")} » ${when} à ${s("time_of_day") || "09:00"}`;
+      }
+      return `Rappel « ${s("title")} » le ${s("run_at").replace("T", " à ")}`;
+    }
+    case "create_automation_rule": {
+      const kinds: Record<string, string> = {
+        briefing_matin: "Briefing du matin",
+        compte_rendu_soir: "Compte rendu du soir",
+        rapport_hebdo: "Préparation automatique du rapport",
+        relance_sans_reponse: "Relance si le client ne répond pas",
+        saisie_temps_manquante: "Alerte de temps non saisi",
+      };
+      return `Automatisation : ${kinds[s("kind")] ?? s("kind")}`;
+    }
     default:
       return name;
   }
