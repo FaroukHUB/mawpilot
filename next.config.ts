@@ -20,9 +20,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // Permet un déploiement Docker autonome (Cloudflare, Render, VPS…)
-  // sans rien changer au code. Voir README, section Déploiement.
-  output: "standalone",
+  // Sortie autonome pour Docker (Cloudflare, Render, VPS…) — voir README.
+  // Sur Vercel, ce mode n'a pas lieu d'être : la plateforme construit
+  // Next.js nativement et son étape finale échoue si on le force.
+  // `process.env.VERCEL` vaut "1" pendant un build Vercel.
+  output: process.env.VERCEL ? undefined : "standalone",
 
   async headers() {
     return [
