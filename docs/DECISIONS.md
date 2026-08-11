@@ -67,3 +67,19 @@ puis l'ensemble est journalisé. Détail d'implémentation en phase 6.
 Le forfait Vercel Hobby n'est pas considéré comme définitif pour un usage
 professionnel (limites et conditions d'usage commercial). Le choix final
 (Vercel Pro ou alternative) sera fait en phase 8 avec l'utilisateur.
+
+## D-009 · Énumérations PostgreSQL en slugs français sans accents
+
+**Date** : 2026-08-11.
+Les statuts, priorités, catégories, etc. sont des types `enum` PostgreSQL avec
+des valeurs stables sans accents (`a_faire`, `terminee`, `supplementaire`…).
+Les libellés affichés (avec accents et majuscules) sont définis dans le code de
+l'interface. Avantage : intégrité garantie par la base, libellés modifiables
+sans migration.
+
+## D-010 · Historique immuable garanti par la base
+
+**Date** : 2026-08-11.
+`activity_logs` n'a aucune politique RLS `UPDATE` ni `DELETE` : même un bug
+applicatif ne peut pas réécrire ou effacer l'historique. Les corrections
+passent par une nouvelle entrée de journal.
