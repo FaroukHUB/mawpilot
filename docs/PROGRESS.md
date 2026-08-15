@@ -14,8 +14,33 @@ version déployée a donné 5 priorités ; voici leur avancement.
 | 2 | Interface voice-first | ✅ livré |
 | 3 | Rappels, automatisations, notifications | ✅ livré |
 | 4 | Cohérence des données (contact principal…) | ✅ livré |
-| 5 | Configuration des rapports + XLSX | à faire |
+| 5 | Configuration des rapports + XLSX | ✅ livré |
 | 6 | **Portail client** (lien privé, demandes, IA) | ✅ livré |
+
+### Priorité 5 — configuration des rapports et XLSX (2026-08-12)
+
+**Configuration par entreprise** (onglet Rapports du cockpit) : fréquence
+hebdomadaire ou mensuelle, jour, heure, destination habituelle, format
+préféré et sections incluses. `report_schedules` porte le QUOI ;
+`automation_rules` porte le QUAND — enregistrer la configuration synchronise
+automatiquement la règle, pour n'avoir **qu'un seul chemin de planification**.
+
+Le worker lit désormais cette configuration : période mensuelle si demandée,
+sections retenues appliquées au brouillon.
+
+**Export XLSX** : trois feuilles (Synthèse, Détail, Temps), en-têtes mis en
+forme, largeurs de colonnes, et **montants et durées exportés comme nombres**
+— le destinataire peut calculer dessus. Bibliothèque `write-excel-file` v4
+(maintenue, aucune vulnérabilité), retenue après le retrait d'`exceljs`.
+
+**Migration** : 12 (`default_format` + unicité par entreprise).
+**Tests** : 5 nouveaux (structure ZIP valide, trois feuilles, rapport vide,
+déterminisme). 197 au total.
+
+> Note de fabrication : le test `server-boundaries` écrit à la priorité 1 a
+> attrapé une récidive du bug d'origine — `report-schedules.ts` (`"use server"`)
+> exportait `REPORT_FORMATS`. Constantes déplacées dans
+> `src/lib/reports/formats.ts`. Le garde-fou a fonctionné avant déploiement.
 
 ### Portail client (2026-08-12)
 

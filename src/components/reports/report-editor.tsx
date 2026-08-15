@@ -252,11 +252,21 @@ export function ReportEditor({
             </Button>
             <Button variant="outline" size="sm" asChild>
               <a
-                href={`/api/exports/${reportId}?format=csv`}
+                href={`/api/exports/${reportId}?format=xlsx`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <Table2 aria-hidden />
+                Excel
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a
+                href={`/api/exports/${reportId}?format=csv`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FileDown aria-hidden />
                 CSV
               </a>
             </Button>

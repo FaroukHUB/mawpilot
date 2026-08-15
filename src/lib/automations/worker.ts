@@ -5,7 +5,11 @@ import { formatMinutes, todayISODate } from "@/lib/dates";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { fetchReportFacts } from "@/lib/reports/collect";
 import { formatLongText, formatWhatsAppMessage } from "@/lib/reports/format";
-import { buildReportTitle, lastWeekPeriod } from "@/lib/reports/periods";
+import {
+  buildReportTitle,
+  lastMonthPeriod,
+  lastWeekPeriod,
+} from "@/lib/reports/periods";
 import { defaultReportContent } from "@/lib/reports/types";
 
 /**
@@ -310,7 +314,10 @@ async function compteRenduSoir(
 
 /**
  * Prépare un BROUILLON de rapport — jamais d'envoi.
- * Les faits sont figés comme pour une génération manuelle.
+ *
+ * La configuration de l'entreprise (`report_schedules`) décide de la période
+ * (hebdomadaire ou mensuelle), des sections retenues et du format mis en
+ * avant. En son absence, on retombe sur un hebdomadaire complet.
  */
 async function rapportHebdo(
   supabase: SupabaseClient,
@@ -320,7 +327,14 @@ async function rapportHebdo(
     return "Règle sans entreprise : brouillon non préparé.";
   }
 
-  const period = lastWeekPeriod();
+  const { data: schedule } = await supabase
+    .from("report_schedules")
+    .select("frequency, sections, default_format")
+    .eq("company_id", rule.company_id)
+    .maybeSingle();
+
+  const isMonthly = schedule?.frequency === "mensuel";
+  const period = isMonthly ? lastMonthPeriod() : lastWeekPeriod();
 
   // Idempotence métier : un seul rapport par entreprise et par période.
   const { data: existing } = await supabase
@@ -343,15 +357,30 @@ async function rapportHebdo(
     rule.companies.name,
     period
   );
+  // Sections retenues par l'utilisateur, sinon celles par défaut.
   const content = defaultReportContent();
-  const title = buildReportTitle("hebdomadaire", rule.companies.name, period);
+  const chosenSections = Array.isArray(schedule?.sections)
+    ? (schedule.sections as string[])
+    : null;
+  if (chosenSections && chosenSections.length > 0) {
+    content.sections = content.sections.map((section) => ({
+      ...section,
+      included: chosenSections.includes(section.key),
+    }));
+  }
+
+  const title = buildReportTitle(
+    isMonthly ? "mensuel" : "hebdomadaire",
+    rule.companies.name,
+    period
+  );
 
   const { data: report } = await supabase
     .from("reports")
     .insert({
       user_id: rule.user_id,
       company_id: rule.company_id,
-      type: "hebdomadaire",
+      type: isMonthly ? "mensuel" : "hebdomadaire",
       period_start: period.start,
       period_end: period.end,
       title,

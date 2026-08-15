@@ -22,6 +22,10 @@ import {
   type MemoryRow,
 } from "@/components/memories/memories-panel";
 import { ReportGenerateDialog } from "@/components/reports/report-generate-dialog";
+import {
+  ReportScheduleForm,
+  type ReportScheduleRow,
+} from "@/components/reports/report-schedule-form";
 import { ResourcesPanel } from "@/components/resources/resources-panel";
 import type { ResourceRow } from "@/components/resources/resource-form-dialog";
 import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
@@ -102,6 +106,7 @@ export default async function CompanyPage({
     { data: memories },
     { data: portalTokens },
     { data: portalSettings },
+    { data: reportSchedule },
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -168,6 +173,11 @@ export default async function CompanyPage({
       .order("created_at", { ascending: false }),
     supabase
       .from("client_portal_settings")
+      .select()
+      .eq("company_id", id)
+      .maybeSingle(),
+    supabase
+      .from("report_schedules")
       .select()
       .eq("company_id", id)
       .maybeSingle(),
@@ -570,6 +580,14 @@ export default async function CompanyPage({
       ) : null}
 
       {tab === "rapports" ? (
+        <div className="flex flex-col gap-4">
+        <ReportScheduleForm
+          companyId={company.id}
+          schedule={(reportSchedule ?? null) as ReportScheduleRow | null}
+          channels={((channels ?? []) as ChannelRow[])
+            .filter((c) => c.is_active)
+            .map((c) => ({ id: c.id, label: c.label }))}
+        />
         <Card>
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle>Rapports ({(reports ?? []).length})</CardTitle>
@@ -622,6 +640,7 @@ export default async function CompanyPage({
             )}
           </CardContent>
         </Card>
+        </div>
       ) : null}
     </div>
   );

@@ -21,6 +21,7 @@ import {
   type ReportFacts,
   type ReportSectionKey,
 } from "@/lib/reports/types";
+import { buildReportXlsx } from "@/lib/reports/xlsx";
 import { sanitizeFileName } from "@/lib/validations/documents";
 import { createClient } from "@/lib/supabase/server";
 
@@ -67,6 +68,18 @@ export async function GET(
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="${baseName}.csv"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
+  if (format === "xlsx") {
+    const buffer = await buildReportXlsx(report.title, facts, content);
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="${baseName}.xlsx"`,
         "Cache-Control": "no-store",
       },
     });
