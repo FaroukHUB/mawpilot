@@ -28,6 +28,13 @@ export type ClientTask = {
   isLate: boolean;
 };
 
+export type ClientFile = {
+  id: string;
+  name: string;
+  url: string | null;
+  isImage: boolean;
+};
+
 export type ClientRequestItem = {
   id: string;
   content: string;
@@ -35,6 +42,10 @@ export type ClientRequestItem = {
   createdOn: string;
   promisedDate: string | null;
   reply: string | null;
+  /** Réponse écrite par le prestataire lui-même, distincte de l'assistant. */
+  ownerReply: string | null;
+  ownerRepliedOn: string | null;
+  attachments: ClientFile[];
 };
 
 export type ClientProject = {
@@ -60,6 +71,7 @@ export type ClientMessage = {
   author: "client" | "assistant" | "utilisateur";
   content: string;
   createdOn: string;
+  attachments: ClientFile[];
 };
 
 export type ClientSpaceData = {
@@ -148,6 +160,72 @@ function sectionLabel(key: string | undefined): string {
   return SECTION_LABELS[key] ?? key.replace(/_/g, " ");
 }
 
+type AttachmentIndex = {
+  byRequest: Map<string, ClientFile[]>;
+  byMessage: Map<string, ClientFile[]>;
+};
+
+/**
+ * Pièces jointes de l'entreprise, signées pour consultation.
+ *
+ * La signature passe par la clé d'administration : les fichiers déposés par
+ * un client vivent sous `clients/` dans le bucket privé, où le client n'a
+ * aucun droit direct. La requête est bornée à son entreprise.
+ */
+async function loadAttachments(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  companyId: string
+): Promise<AttachmentIndex> {
+  const empty: AttachmentIndex = { byRequest: new Map(), byMessage: new Map() };
+
+  const { data } = await supabase
+    .from("client_attachments")
+    .select("id, name, mime_type, storage_path, request_id, message_id")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: true })
+    .limit(120);
+
+  if (!data || data.length === 0) return empty;
+
+  let signer: ReturnType<typeof createAdminClient> | null = null;
+  try {
+    signer = createAdminClient();
+  } catch {
+    // Sans clé d'administration, on affiche les noms sans lien plutôt que
+    // de faire échouer tout l'espace client.
+    signer = null;
+  }
+
+  for (const row of data) {
+    let url: string | null = null;
+    if (signer) {
+      const { data: signed } = await signer.storage
+        .from(BUCKET)
+        .createSignedUrl(row.storage_path, SIGNED_URL_SECONDS);
+      url = signed?.signedUrl ?? null;
+    }
+
+    const file: ClientFile = {
+      id: row.id,
+      name: row.name,
+      url,
+      isImage: String(row.mime_type).startsWith("image/"),
+    };
+
+    for (const [key, map] of [
+      [row.request_id, empty.byRequest],
+      [row.message_id, empty.byMessage],
+    ] as const) {
+      if (!key) continue;
+      const list = map.get(key);
+      if (list) list.push(file);
+      else map.set(key, [file]);
+    }
+  }
+
+  return empty;
+}
+
 export async function loadClientSpace(
   account: ClientAccount
 ): Promise<ClientSpaceData> {
@@ -194,7 +272,9 @@ export async function loadClientSpace(
       .limit(12),
     supabase
       .from("client_requests")
-      .select("id, content, status, created_at, promised_date, assistant_reply")
+      .select(
+        "id, content, status, created_at, promised_date, assistant_reply, owner_reply, owner_replied_at"
+      )
       .eq("company_id", account.companyId)
       .order("created_at", { ascending: false })
       .limit(30),
@@ -210,6 +290,8 @@ export async function loadClientSpace(
       .eq("company_id", account.companyId)
       .maybeSingle(),
   ]);
+
+  const attachments = await loadAttachments(supabase, account.companyId);
 
   const raw = (rawTasks ?? []) as unknown as RawTask[];
   const tasks = raw.map((task) => toClientTask(task, today));
@@ -303,12 +385,18 @@ export async function loadClientSpace(
       createdOn: formatDateShort(r.created_at),
       promisedDate: r.promised_date ? formatDateShort(r.promised_date) : null,
       reply: r.assistant_reply,
+      ownerReply: r.owner_reply ?? null,
+      ownerRepliedOn: r.owner_replied_at
+        ? formatDateShort(r.owner_replied_at)
+        : null,
+      attachments: attachments.byRequest.get(r.id) ?? [],
     })),
     conversation: (rawMessages ?? []).map((m) => ({
       id: m.id,
       author: m.author as ClientMessage["author"],
       content: m.content,
       createdOn: formatDateShort(m.created_at),
+      attachments: attachments.byMessage.get(m.id) ?? [],
     })),
     nextDeadline: nextDue ? toClientTask(nextDue, today) : null,
     lastActivityOn: lastCompleted ? formatDateLong(lastCompleted) : null,

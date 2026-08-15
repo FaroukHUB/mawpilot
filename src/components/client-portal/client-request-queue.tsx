@@ -1,7 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { Archive, Check, Loader2, Mic, Send, X } from "lucide-react";
+import {
+  Archive,
+  Check,
+  FileText,
+  ImageIcon,
+  Loader2,
+  MailCheck,
+  Mic,
+  Send,
+  X,
+} from "lucide-react";
 
 import {
   acceptClientRequest,
@@ -16,6 +26,13 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDateTime } from "@/lib/dates";
 
+export type RequestAttachment = {
+  id: string;
+  name: string;
+  url: string | null;
+  isImage: boolean;
+};
+
 export type ClientRequestRow = {
   id: string;
   content: string;
@@ -23,10 +40,12 @@ export type ClientRequestRow = {
   classification: string;
   status: string;
   assistant_reply: string | null;
+  owner_reply: string | null;
   promised_date: string | null;
   is_voice: boolean;
   created_at: string;
   companies: { name: string; color: string } | null;
+  attachments: RequestAttachment[];
 };
 
 const CLASSIFICATION_LABELS: Record<string, string> = {
@@ -133,7 +152,41 @@ function RequestCard({
         <Badge variant="secondary">
           {STATUS_LABELS[request.status] ?? request.status}
         </Badge>
+        {request.owner_reply ? (
+          <Badge className="bg-emerald-600 text-white">
+            <MailCheck className="size-3" aria-hidden />
+            Répondu
+          </Badge>
+        ) : null}
       </div>
+
+      {request.attachments?.length ? (
+        <ul className="flex flex-wrap gap-1.5">
+          {request.attachments.map((file) => (
+            <li key={file.id}>
+              <a
+                href={file.url ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-1 text-xs hover:underline"
+              >
+                {file.isImage ? (
+                  <ImageIcon className="size-3.5 shrink-0" aria-hidden />
+                ) : (
+                  <FileText className="size-3.5 shrink-0" aria-hidden />
+                )}
+                <span className="max-w-48 truncate">{file.name}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {request.owner_reply ? (
+        <p className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-950">
+          <strong>Votre réponse :</strong> {request.owner_reply}
+        </p>
+      ) : null}
 
       {request.assistant_reply ? (
         <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">

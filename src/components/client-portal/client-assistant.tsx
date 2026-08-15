@@ -1,9 +1,22 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Send, Sparkles } from "lucide-react";
+import {
+  Camera,
+  FileText,
+  ImageIcon,
+  Loader2,
+  Paperclip,
+  Send,
+  Sparkles,
+  X,
+} from "lucide-react";
 
-import { sendSpaceMessage } from "@/actions/client-space";
+import {
+  sendSpaceMessage,
+  uploadClientAttachment,
+  type ClientAttachment,
+} from "@/actions/client-space";
 import { VoiceRecorder } from "@/components/assistant/voice-recorder";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,12 +53,36 @@ export function ClientAssistant({
   const [isVoice, setIsVoice] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = React.useState<ClientAttachment[]>([]);
+  const [isUploading, setIsUploading] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
   const endRef = React.useRef<HTMLDivElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const cameraInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
   }, [items.length, isPending]);
+
+  async function attach(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setError(null);
+    setIsUploading(true);
+
+    for (const file of Array.from(files).slice(0, 6 - pendingFiles.length)) {
+      const formData = new FormData();
+      formData.append("file", file);
+      const result = await uploadClientAttachment(formData);
+      if (result.error || !result.data) {
+        setError(result.error ?? "Envoi du fichier impossible.");
+        break;
+      }
+      const uploaded = result.data;
+      setPendingFiles((prev) => [...prev, uploaded]);
+    }
+
+    setIsUploading(false);
+  }
 
   function send(raw?: string) {
     const message = (raw ?? text).trim();
@@ -53,21 +90,39 @@ export function ClientAssistant({
     setError(null);
     setNotice(null);
 
+    const attached = pendingFiles;
     const localId = `local-${items.length}`;
     setItems((prev) => [
       ...prev,
-      { id: localId, author: "client", content: message, createdOn: "" },
+      {
+        id: localId,
+        author: "client",
+        content: message,
+        createdOn: "",
+        attachments: attached.map((f) => ({
+          id: f.id,
+          name: f.name,
+          url: null,
+          isImage: f.isImage,
+        })),
+      },
     ]);
     setText("");
+    setPendingFiles([]);
 
     startTransition(async () => {
-      const result = await sendSpaceMessage({ message, is_voice: isVoice });
+      const result = await sendSpaceMessage({
+        message,
+        is_voice: isVoice,
+        attachment_ids: attached.map((f) => f.id),
+      });
       setIsVoice(false);
 
       if (result.error || !result.data) {
         setError(result.error ?? "Envoi impossible.");
         setItems((prev) => prev.filter((m) => m.id !== localId));
         setText(message);
+        setPendingFiles(attached);
         return;
       }
 
@@ -78,6 +133,7 @@ export function ClientAssistant({
           author: "assistant",
           content: result.data.reply,
           createdOn: "",
+          attachments: [],
         },
       ]);
       if (result.data.requestCreated) {
@@ -125,10 +181,32 @@ export function ClientAssistant({
                     "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap",
                     message.author === "client"
                       ? "rounded-br-sm bg-primary text-primary-foreground"
-                      : "rounded-bl-sm bg-muted"
+                      : message.author === "utilisateur"
+                        ? "rounded-bl-sm border border-emerald-300 bg-emerald-50 text-emerald-950"
+                        : "rounded-bl-sm bg-muted"
                   )}
                 >
+                  {message.author === "utilisateur" ? (
+                    <span className="mb-0.5 block text-[11px] font-semibold tracking-wide uppercase">
+                      Votre prestataire
+                    </span>
+                  ) : null}
                   {message.content}
+
+                  {message.attachments.length > 0 ? (
+                    <span className="mt-1.5 flex flex-wrap gap-1.5">
+                      {message.attachments.map((file) => (
+                        <AttachmentChip
+                          key={file.id}
+                          name={file.name}
+                          isImage={file.isImage}
+                          url={file.url}
+                          onOwnBubble={message.author === "client"}
+                        />
+                      ))}
+                    </span>
+                  ) : null}
+
                   {message.createdOn ? (
                     <span
                       className={cn(
@@ -185,6 +263,36 @@ export function ClientAssistant({
       ) : null}
 
       <div className="flex flex-col gap-2 rounded-xl border bg-card p-3">
+        {pendingFiles.length > 0 ? (
+          <ul className="flex flex-wrap gap-2">
+            {pendingFiles.map((file) => (
+              <li
+                key={file.id}
+                className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-2 py-1 text-xs"
+              >
+                {file.isImage ? (
+                  <ImageIcon className="size-3.5 shrink-0" aria-hidden />
+                ) : (
+                  <FileText className="size-3.5 shrink-0" aria-hidden />
+                )}
+                <span className="max-w-40 truncate">{file.name}</span>
+                <button
+                  type="button"
+                  aria-label={`Retirer ${file.name}`}
+                  onClick={() =>
+                    setPendingFiles((prev) =>
+                      prev.filter((f) => f.id !== file.id)
+                    )
+                  }
+                  className="rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  <X className="size-3" aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -209,6 +317,55 @@ export function ClientAssistant({
             Envoyer
           </Button>
 
+          {/* Deux entrées distinctes : l'appareil photo ouvre directement la
+              caméra sur mobile, l'autre laisse choisir un fichier existant. */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            onChange={(e) => {
+              void attach(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,application/pdf"
+            className="sr-only"
+            onChange={(e) => {
+              void attach(e.target.files);
+              e.target.value = "";
+            }}
+          />
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isPending || isUploading || pendingFiles.length >= 6}
+            onClick={() => cameraInputRef.current?.click()}
+          >
+            {isUploading ? (
+              <Loader2 className="animate-spin" aria-hidden />
+            ) : (
+              <Camera aria-hidden />
+            )}
+            Photo
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isPending || isUploading || pendingFiles.length >= 6}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Paperclip aria-hidden />
+            Fichier
+          </Button>
+
           {voiceEnabled ? (
             <VoiceRecorder
               label="Dicter"
@@ -225,7 +382,56 @@ export function ClientAssistant({
             />
           ) : null}
         </div>
+        <p className="text-[11px] text-muted-foreground">
+          Photos et PDF acceptés, 10 Mo par fichier, 6 par message.
+        </p>
       </div>
     </div>
+  );
+}
+
+/** Pièce jointe affichée dans une bulle de conversation. */
+function AttachmentChip({
+  name,
+  isImage,
+  url,
+  onOwnBubble,
+}: {
+  name: string;
+  isImage: boolean;
+  url: string | null;
+  onOwnBubble: boolean;
+}) {
+  const className = cn(
+    "inline-flex max-w-full items-center gap-1.5 rounded-lg px-2 py-1 text-xs",
+    onOwnBubble
+      ? "bg-primary-foreground/15 text-primary-foreground"
+      : "bg-background/70 text-foreground"
+  );
+  const icon = isImage ? (
+    <ImageIcon className="size-3.5 shrink-0" aria-hidden />
+  ) : (
+    <FileText className="size-3.5 shrink-0" aria-hidden />
+  );
+
+  if (!url) {
+    return (
+      <span className={className}>
+        {icon}
+        <span className="truncate">{name}</span>
+      </span>
+    );
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(className, "underline-offset-2 hover:underline")}
+    >
+      {icon}
+      <span className="truncate">{name}</span>
+    </a>
   );
 }

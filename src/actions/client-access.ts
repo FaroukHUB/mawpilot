@@ -242,6 +242,13 @@ export async function acceptClientRequest(
     return { error: "Création de la tâche impossible." };
   }
 
+  // Réponse visible par le client dans son portail.
+  const replyText =
+    parsed.data.reply?.trim() ||
+    (parsed.data.promised_date
+      ? `C'est noté. Cette demande est planifiée pour le ${parsed.data.promised_date}.`
+      : "C'est noté, la demande est prise en compte.");
+
   await supabase
     .from("client_requests")
     .update({
@@ -249,16 +256,11 @@ export async function acceptClientRequest(
       task_id: task.id,
       promised_date: parsed.data.promised_date ?? null,
       promised_at: parsed.data.promised_date ? new Date().toISOString() : null,
+      owner_reply: replyText,
+      owner_replied_at: new Date().toISOString(),
     })
     .eq("id", request.id)
     .eq("user_id", user.id);
-
-  // Réponse visible par le client dans son portail.
-  const replyText =
-    parsed.data.reply?.trim() ||
-    (parsed.data.promised_date
-      ? `C'est noté. Cette demande est planifiée pour le ${parsed.data.promised_date}.`
-      : "C'est noté, la demande est prise en compte.");
 
   await supabase.from("client_messages").insert({
     user_id: user.id,
@@ -277,6 +279,7 @@ export async function acceptClientRequest(
 
   revalidatePath("/demandes");
   revalidatePath("/taches");
+  revalidatePath("/espace");
   return { data: { taskId: task.id } };
 }
 
@@ -301,15 +304,26 @@ export async function replyToClientRequest(
     .single();
   if (!request) return { error: "Demande introuvable." };
 
+  const content = trimmed.slice(0, 2000);
+
   await supabase.from("client_messages").insert({
     user_id: user.id,
     company_id: request.company_id,
     request_id: request.id,
     author: "utilisateur",
-    content: trimmed.slice(0, 2000),
+    content,
   });
 
+  // La réponse est aussi portée par la demande : sans cela, le client ne
+  // voyait rien changer dans son suivi et devait ouvrir la conversation.
+  await supabase
+    .from("client_requests")
+    .update({ owner_reply: content, owner_replied_at: new Date().toISOString() })
+    .eq("id", request.id)
+    .eq("user_id", user.id);
+
   revalidatePath("/demandes");
+  revalidatePath("/espace");
   return { data: { id: request.id } };
 }
 

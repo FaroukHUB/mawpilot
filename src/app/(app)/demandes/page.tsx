@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Inbox } from "lucide-react";
 
-import { ClientRequestQueue } from "@/components/client-portal/client-request-queue";
+import {
+  ClientRequestQueue,
+  type RequestAttachment,
+} from "@/components/client-portal/client-request-queue";
 import {
   Card,
   CardContent,
@@ -26,7 +29,40 @@ export default async function ClientRequestsPage() {
     .order("created_at", { ascending: false })
     .limit(60);
 
-  const list = requests ?? [];
+  const raw = requests ?? [];
+
+  // Pièces jointes déposées par les clients : signées pour être ouvertes
+  // directement depuis la file, sans passer par la fiche entreprise.
+  const { data: files } = await supabase
+    .from("client_attachments")
+    .select("id, name, mime_type, storage_path, request_id")
+    .in(
+      "request_id",
+      raw.map((r) => r.id)
+    )
+    .limit(200);
+
+  const byRequest = new Map<string, RequestAttachment[]>();
+  for (const file of files ?? []) {
+    if (!file.request_id) continue;
+    const { data: signed } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(file.storage_path, 60 * 30);
+    const entry: RequestAttachment = {
+      id: file.id,
+      name: file.name,
+      url: signed?.signedUrl ?? null,
+      isImage: String(file.mime_type).startsWith("image/"),
+    };
+    const existing = byRequest.get(file.request_id);
+    if (existing) existing.push(entry);
+    else byRequest.set(file.request_id, [entry]);
+  }
+
+  const list = raw.map((request) => ({
+    ...request,
+    attachments: byRequest.get(request.id) ?? [],
+  }));
   const pending = list.filter(
     (r) => r.status === "nouvelle" || r.status === "en_analyse"
   );

@@ -10,6 +10,7 @@ import { loadAssistantContext } from "@/lib/client-portal/client-data";
 import { getClientAccount } from "@/lib/client-portal/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sanitizeFileName } from "@/lib/validations/documents";
 import type { ActionResult } from "@/actions/companies";
 
 /**
@@ -24,9 +25,125 @@ import type { ActionResult } from "@/actions/companies";
 const messageSchema = z.object({
   message: z.string().trim().min(2, "Message trop court.").max(2000),
   is_voice: z.coerce.boolean().default(false),
+  /** Pièces jointes déjà téléversées, à rattacher à cette demande. */
+  attachment_ids: z.array(z.uuid()).max(6).default([]),
 });
 
 const MAX_MESSAGES_PER_HOUR = 20;
+
+const BUCKET = "documents";
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+const MAX_ATTACHMENTS_PER_HOUR = 20;
+
+/** Photos et documents : de quoi illustrer une demande, rien d'exécutable. */
+const ALLOWED_ATTACHMENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+  "application/pdf",
+] as const;
+
+export type ClientAttachment = {
+  id: string;
+  name: string;
+  mimeType: string;
+  isImage: boolean;
+};
+
+/**
+ * Téléverse une pièce jointe du client dans le bucket privé.
+ *
+ * Le client n'a aucun droit sur le Storage : tout passe par ici, où le type
+ * et la taille sont vérifiés côté serveur. Le fichier est rattaché à la
+ * demande au moment de l'envoi du message.
+ */
+export async function uploadClientAttachment(
+  formData: FormData
+): Promise<ActionResult<ClientAttachment>> {
+  const file = formData.get("file");
+
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Aucun fichier sélectionné." };
+  }
+  if (file.size > MAX_ATTACHMENT_BYTES) {
+    return { error: "Fichier trop lourd (10 Mo maximum)." };
+  }
+  if (!(ALLOWED_ATTACHMENT_TYPES as readonly string[]).includes(file.type)) {
+    return {
+      error: "Formats acceptés : photo (JPG, PNG, WEBP, HEIC) ou PDF.",
+    };
+  }
+
+  const account = await getClientAccount();
+  if (!account) return { error: "Session expirée, reconnectez-vous." };
+
+  const admin = createAdminClient();
+
+  const { data: link } = await admin
+    .from("client_users")
+    .select("owner_user_id")
+    .eq("id", account.clientUserId)
+    .single();
+  if (!link) return { error: "Compte introuvable." };
+
+  const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
+  const { count } = await admin
+    .from("client_attachments")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", account.companyId)
+    .gte("created_at", oneHourAgo);
+
+  if ((count ?? 0) >= MAX_ATTACHMENTS_PER_HOUR) {
+    return { error: "Trop de fichiers envoyés coup sur coup. Réessayez plus tard." };
+  }
+
+  // Chemin sous le dossier du prestataire : la politique Storage existante
+  // lui donne alors accès au fichier sans traitement particulier.
+  const storagePath = `${link.owner_user_id}/clients/${account.companyId}/${Date.now()}-${sanitizeFileName(file.name)}`;
+
+  const { error: uploadError } = await admin.storage
+    .from(BUCKET)
+    .upload(storagePath, file, { contentType: file.type, upsert: false });
+
+  if (uploadError) {
+    return { error: "Envoi du fichier impossible. Réessayez." };
+  }
+
+  const { data, error } = await admin
+    .from("client_attachments")
+    .insert({
+      user_id: link.owner_user_id,
+      company_id: account.companyId,
+      uploaded_by: "client",
+      name: file.name.slice(0, 200),
+      storage_path: storagePath,
+      mime_type: file.type,
+      size_bytes: file.size,
+    })
+    .select("id, name, mime_type")
+    .single();
+
+  if (error || !data) {
+    // Le fichier ne doit pas rester orphelin dans le bucket.
+    await admin.storage.from(BUCKET).remove([storagePath]);
+    return {
+      error:
+        "Enregistrement impossible. Si le problème persiste, prévenez votre prestataire.",
+    };
+  }
+
+  return {
+    data: {
+      id: data.id,
+      name: data.name,
+      mimeType: data.mime_type,
+      isImage: data.mime_type.startsWith("image/"),
+    },
+  };
+}
 
 export type SpaceReply = {
   reply: string;
@@ -74,12 +191,29 @@ export async function sendSpaceMessage(
 
   // 1. Le message du client est enregistré avant tout traitement : même si
   //    l'IA échoue, rien n'est perdu.
-  await admin.from("client_messages").insert({
-    user_id: link.owner_user_id,
-    company_id: account.companyId,
-    author: "client",
-    content: parsed.data.message,
-  });
+  const { data: clientMessage } = await admin
+    .from("client_messages")
+    .insert({
+      user_id: link.owner_user_id,
+      company_id: account.companyId,
+      author: "client",
+      content: parsed.data.message,
+    })
+    .select("id")
+    .single();
+
+  // Les pièces jointes déjà téléversées rejoignent ce message. On restreint à
+  // l'entreprise du client et aux fichiers encore libres : un identifiant
+  // deviné ne peut pas déplacer la pièce jointe d'un autre.
+  const attachmentIds = parsed.data.attachment_ids;
+  if (attachmentIds.length > 0 && clientMessage) {
+    await admin
+      .from("client_attachments")
+      .update({ message_id: clientMessage.id })
+      .in("id", attachmentIds)
+      .eq("company_id", account.companyId)
+      .is("message_id", null);
+  }
 
   const { data: history } = await admin
     .from("client_messages")
@@ -183,6 +317,15 @@ export async function sendSpaceMessage(
       .select("id")
       .single();
     requestId = request?.id ?? null;
+
+    if (requestId && attachmentIds.length > 0) {
+      await admin
+        .from("client_attachments")
+        .update({ request_id: requestId })
+        .in("id", attachmentIds)
+        .eq("company_id", account.companyId)
+        .is("request_id", null);
+    }
   }
 
   // 3. Réponse de l'assistant conservée dans le fil.
@@ -215,7 +358,11 @@ export async function sendSpaceMessage(
       : isRequest
         ? `Nouvelle demande — ${account.companyName}`
         : `Question client — ${account.companyName}`,
-    body: `${account.displayName} : ${parsed.data.message.slice(0, 160)}`,
+    body:
+      `${account.displayName} : ${parsed.data.message.slice(0, 160)}` +
+      (attachmentIds.length > 0
+        ? ` · ${attachmentIds.length} pièce${attachmentIds.length > 1 ? "s" : ""} jointe${attachmentIds.length > 1 ? "s" : ""}`
+        : ""),
     url: "/demandes",
     alwaysEmail: outOfScope,
   });
