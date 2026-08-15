@@ -25,6 +25,8 @@ import {
   MemoriesPanel,
   type MemoryRow,
 } from "@/components/memories/memories-panel";
+import { checkClientAccessSetup } from "@/actions/client-accounts";
+import { getAppBaseUrl } from "@/lib/client-portal/base-url";
 import { ReportGenerateDialog } from "@/components/reports/report-generate-dialog";
 import {
   ReportScheduleForm,
@@ -214,6 +216,12 @@ export default async function CompanyPage({
     name: p.name,
     company_id: p.company_id,
   }));
+
+  // Diagnostic et lien d'invitation : utiles uniquement sur l'onglet portail.
+  const [accessSetup, appUrl] =
+    tab === "portail"
+      ? await Promise.all([checkClientAccessSetup(), getAppBaseUrl()])
+      : [null, ""];
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
@@ -567,10 +575,13 @@ export default async function CompanyPage({
         <div className="flex flex-col gap-4">
         <ClientAccountsPanel
           companyId={company.id}
+          companyName={company.name}
           accounts={(clientAccounts ?? []) as ClientAccountRow[]}
           contacts={((contacts ?? []) as ContactRow[])
             .filter((c) => c.is_active)
             .map((c) => ({ id: c.id, name: c.name }))}
+          setupMessage={accessSetup?.message ?? null}
+          appUrl={appUrl}
         />
         <PortalSettingsPanel
           companyId={company.id}
