@@ -15,6 +15,51 @@ version déployée a donné 5 priorités ; voici leur avancement.
 | 3 | Rappels, automatisations, notifications | ✅ livré |
 | 4 | Cohérence des données (contact principal…) | ✅ livré |
 | 5 | Configuration des rapports + XLSX | à faire |
+| 6 | **Portail client** (lien privé, demandes, IA) | ✅ livré |
+
+### Portail client (2026-08-12)
+
+**Accès** (D-024) : lien privé par contact, sans compte. Jeton haché SHA-256,
+expirable, révocable, avec compteur d'ouvertures. Le lien complet n'est
+affiché qu'une fois, à la création.
+
+**Ce que le client voit** : en attente de son retour (mis en avant), en cours,
+à venir, réalisé, résultats, livrables partagés, comptes rendus partagés.
+**Jamais** : temps passé, montants, facturation, priorités, notes internes,
+mémoire IA, historique, accès rapides, autres entreprises.
+
+**Point d'audit unique** (D-025) : `src/lib/client-portal/data.ts`, marqué
+`server-only`. Documents masqués par défaut, tâches masquables une par une,
+rapports visibles seulement au statut « partagé ».
+
+**Demandes** : le client écrit ou dicte. L'assistant accuse réception, classe
+(incluse / supplémentaire / question) contre la charte de l'entreprise, et
+répond avec **les phrases exactes de l'utilisateur** quand c'est hors forfait
+ou hors quota. Notification immédiate au propriétaire, email forcé pour les
+dépassements.
+
+**Sécurité de l'IA** (D-026) : **aucun outil** donné au modèle du portail —
+il ne peut pas aller chercher ce qu'on ne lui a pas donné. Message du client
+délimité, sortie contrainte par schéma, phrases de refus figées.
+
+**Engagement de date** (D-027) : jamais par l'IA. Seule l'action
+`acceptClientRequest` du propriétaire renseigne une date, crée la tâche et
+envoie la réponse.
+
+**Charte configurable par entreprise** : prestations incluses, hors forfait,
+quota mensuel, phrases de refus, ton, sections visibles, réponse IA activable,
+dictée activable.
+
+**Fichiers** : `lib/client-portal/{tokens,data,assistant}.ts`,
+`app/client/[token]`, `app/api/client/transcribe`, `app/(app)/demandes`,
+`actions/client-{portal,access}.ts`, `components/client-portal/*`.
+**Migration** : 11.
+
+**Tests** : 26 nouveaux — jetons (falsification, préfixe seul, format
+invalide), confidentialité par analyse du code source (tables et colonnes
+interdites), protection anti-injection, interdiction d'engagement de date.
+192 au total. Vérifiés comme échouant sur une fuite volontairement
+réintroduite.
 
 ### Priorité 3 — rappels, automatisations et notifications (2026-08-11)
 

@@ -23,11 +23,16 @@ export function VoiceRecorder({
   onError,
   disabled = false,
   label = "Dicter",
+  endpoint = "/api/ai/transcribe",
+  extraFields,
 }: {
   onTranscribed: (result: TranscriptionResult) => void;
   onError: (message: string) => void;
   disabled?: boolean;
   label?: string;
+  /** Le portail client utilise une route validée par jeton, sans session. */
+  endpoint?: string;
+  extraFields?: Record<string, string>;
 }) {
   const [isRecording, setIsRecording] = React.useState(false);
   const [isTranscribing, setIsTranscribing] = React.useState(false);
@@ -101,8 +106,11 @@ export function VoiceRecorder({
         const formData = new FormData();
         formData.append("audio", blob, "dictee");
         formData.append("duration", String(durationSeconds));
+        for (const [key, value] of Object.entries(extraFields ?? {})) {
+          formData.append(key, value);
+        }
 
-        const response = await fetch("/api/ai/transcribe", {
+        const response = await fetch(endpoint, {
           method: "POST",
           body: formData,
         });

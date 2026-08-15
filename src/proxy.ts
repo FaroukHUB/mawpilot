@@ -40,7 +40,13 @@ export default async function proxy(request: NextRequest) {
   const isPublic =
     pathname === "/" ||
     pathname.startsWith("/login") ||
-    pathname.startsWith("/auth");
+    pathname.startsWith("/auth") ||
+    // Portail client : authentifié par jeton, sans session Supabase.
+    // La validation du jeton est faite par la page et la route elles-mêmes.
+    pathname.startsWith("/client/") ||
+    pathname.startsWith("/api/client/") ||
+    // Planificateur : authentifié par secret partagé.
+    pathname.startsWith("/api/cron/");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

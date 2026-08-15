@@ -13,6 +13,11 @@ import {
   type DocumentRow,
 } from "@/components/documents/documents-panel";
 import {
+  PortalSettingsPanel,
+  type PortalSettingsRow,
+  type PortalTokenRow,
+} from "@/components/client-portal/portal-settings-panel";
+import {
   MemoriesPanel,
   type MemoryRow,
 } from "@/components/memories/memories-panel";
@@ -58,6 +63,7 @@ const TABS = [
   { key: "contacts", label: "Contacts & WhatsApp" },
   { key: "documents", label: "Documents" },
   { key: "acces", label: "Accès rapides" },
+  { key: "portail", label: "Portail client" },
   { key: "memoire", label: "Mémoire IA" },
   { key: "historique", label: "Historique" },
 ] as const;
@@ -94,6 +100,8 @@ export default async function CompanyPage({
     { data: documents },
     { data: reports },
     { data: memories },
+    { data: portalTokens },
+    { data: portalSettings },
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -153,6 +161,16 @@ export default async function CompanyPage({
       .eq("company_id", id)
       .order("is_archived")
       .order("created_at", { ascending: false }),
+    supabase
+      .from("client_access_tokens")
+      .select()
+      .eq("company_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("client_portal_settings")
+      .select()
+      .eq("company_id", id)
+      .maybeSingle(),
   ]);
 
   const projectList = (projects ?? []) as Project[];
@@ -522,6 +540,18 @@ export default async function CompanyPage({
           companyId={company.id}
           resources={(resources ?? []) as ResourceRow[]}
           showArchived
+        />
+      ) : null}
+
+      {tab === "portail" ? (
+        <PortalSettingsPanel
+          companyId={company.id}
+          companyName={company.name}
+          tokens={(portalTokens ?? []) as PortalTokenRow[]}
+          settings={(portalSettings ?? null) as PortalSettingsRow | null}
+          contacts={((contacts ?? []) as ContactRow[])
+            .filter((c) => c.is_active)
+            .map((c) => ({ id: c.id, name: c.name }))}
         />
       ) : null}
 
