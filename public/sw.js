@@ -7,7 +7,9 @@
  * mettre en cache des pages authentifiées exposerait des données privées.
  */
 
-const CACHE_NAME = "mawpilot-shell-v2";
+// À incrémenter dès que le manifeste ou une icône change : sinon les
+// appareils déjà installés continuent de servir l'ancienne version.
+const CACHE_NAME = "mawpilot-shell-v3";
 const SHELL_ASSETS = [
   "/manifest.webmanifest",
   "/icons/icon-192.png",
