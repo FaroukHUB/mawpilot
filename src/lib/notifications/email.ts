@@ -23,7 +23,8 @@ export async function sendEmailFallback(input: {
 }): Promise<EmailResult> {
   if (!isEmailConfigured()) return "non_configure";
 
-  const from = process.env.ALERT_EMAIL_FROM || "MAW Pilot <onboarding@resend.dev>";
+  const from =
+    process.env.ALERT_EMAIL_FROM || "MAW Pilot by Farouk <onboarding@resend.dev>";
   const link = input.url
     ? `\n\nOuvrir : ${process.env.NEXT_PUBLIC_APP_URL ?? ""}${input.url}`
     : "";

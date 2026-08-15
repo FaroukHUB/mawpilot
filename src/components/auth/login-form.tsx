@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Loader2, Rocket } from "lucide-react";
 
 import { login, type LoginState } from "@/actions/auth";
+import { Wordmark } from "@/components/layout/wordmark";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,7 +27,9 @@ export function LoginForm({ suivant }: { suivant?: string }) {
         <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <Rocket className="size-6" aria-hidden />
         </div>
-        <CardTitle className="text-2xl">MAW Pilot</CardTitle>
+        <CardTitle className="text-2xl">
+          <Wordmark className="justify-center" />
+        </CardTitle>
         <CardDescription>Connexion à votre espace de pilotage</CardDescription>
       </CardHeader>
       <CardContent>

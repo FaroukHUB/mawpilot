@@ -14,10 +14,11 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { BRAND_FULL, Wordmark } from "@/components/layout/wordmark";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "MAW Pilot — Votre espace de suivi de projet",
+  title: `${BRAND_FULL} — Votre espace de suivi de projet`,
   description:
     "Suivez l'avancement de votre projet en temps réel, échangez avec un assistant disponible à toute heure, consultez vos comptes rendus, vos résultats de référencement et vos livrables.",
 };
@@ -80,7 +81,7 @@ export default function LandingPage() {
           <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <Rocket className="size-5" aria-hidden />
           </span>
-          <span className="text-lg font-semibold">MAW Pilot</span>
+          <Wordmark className="text-lg font-semibold" />
         </div>
         <Button asChild size="sm">
           <Link href="/login">Se connecter</Link>
@@ -102,7 +103,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="max-w-xl text-lg text-muted-foreground text-pretty">
-            MAW Pilot est l&apos;espace où votre prestataire vous montre son
+            {BRAND_FULL} est l&apos;espace où votre prestataire vous montre son
             travail au fil de l&apos;eau. Avancement en direct, comptes rendus
             détaillés, résultats chiffrés, livrables — et un assistant à qui
             vous pouvez parler quand vous voulez.
@@ -225,7 +226,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t px-5 py-6 text-center text-xs text-muted-foreground">
-        MAW Pilot — espace de suivi de projet.{" "}
+        {BRAND_FULL} — espace de suivi de projet.{" "}
         <Link href="/login" className="underline hover:text-foreground">
           Connexion prestataire
         </Link>

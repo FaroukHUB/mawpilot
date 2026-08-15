@@ -7,6 +7,7 @@ import { LogOut, Rocket } from "lucide-react";
 import { logout } from "@/actions/auth";
 import { navigation, type NavBadges } from "@/components/layout/nav-items";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { Wordmark } from "@/components/layout/wordmark";
 import type { NotificationRow } from "@/components/notifications/notification-list";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +28,7 @@ export function Sidebar({
         <span className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
           <Rocket className="size-4" aria-hidden />
         </span>
-        <span className="text-lg font-semibold">MAW Pilot</span>
+        <Wordmark className="text-lg font-semibold" />
         <NotificationBell notifications={notifications} className="ml-auto" />
       </div>
       <nav aria-label="Navigation principale" className="flex-1 overflow-y-auto px-2">

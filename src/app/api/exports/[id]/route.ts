@@ -275,7 +275,7 @@ async function buildDocx(
       alignment: AlignmentType.RIGHT,
       children: [
         new TextRun({
-          text: "Rapport établi à partir des données enregistrées dans MAW Pilot.",
+          text: "Rapport établi à partir des données enregistrées dans MAW Pilot by Farouk.",
           italics: true,
           size: 16,
         }),

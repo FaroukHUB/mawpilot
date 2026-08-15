@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { LogOut, Rocket } from "lucide-react";
 
 import { logout } from "@/actions/auth";
+import { BRAND_FULL } from "@/components/layout/wordmark";
 import { getClientAccount } from "@/lib/client-portal/session";
 
 /**
@@ -51,7 +52,7 @@ export default async function ClientSpaceLayout({
       <footer className="border-t bg-background px-4 py-4">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-center gap-2 text-xs text-muted-foreground">
           <Rocket className="size-3.5" aria-hidden />
-          Propulsé par MAW Pilot
+          Propulsé par {BRAND_FULL}
         </div>
       </footer>
     </div>

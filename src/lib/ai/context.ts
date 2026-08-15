@@ -30,7 +30,7 @@ export function buildSystemPrompt(input: {
   const dateLine = format(today, "EEEE d MMMM yyyy", { locale: fr });
 
   const lines: string[] = [
-    "Tu es l'assistant intégré de MAW Pilot, une application privée de pilotage",
+    "Tu es l'assistant intégré de MAW Pilot by Farouk, une application privée de pilotage",
     "d'activité freelance. Tu réponds en français, de façon brève et concrète.",
     "",
     "CONTEXTE TEMPOREL",

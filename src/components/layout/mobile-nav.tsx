@@ -17,6 +17,7 @@ import {
 import { logout } from "@/actions/auth";
 import { navigation, type NavBadges } from "@/components/layout/nav-items";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { Wordmark } from "@/components/layout/wordmark";
 import type { NotificationRow } from "@/components/notifications/notification-list";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +51,7 @@ export function MobileNav({
           <span className="flex size-7 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
             <Rocket className="size-4" aria-hidden />
           </span>
-          <span className="font-semibold">MAW Pilot</span>
+          <Wordmark className="font-semibold" />
         </Link>
         <div className="flex items-center gap-1">
           <NotificationBell notifications={notifications} />

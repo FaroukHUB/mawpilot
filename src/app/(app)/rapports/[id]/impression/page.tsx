@@ -241,7 +241,8 @@ export default async function PrintReportPage({
       ) : null}
 
       <footer className="mt-8 border-t pt-3 text-xs text-neutral-500">
-        Rapport établi à partir des données enregistrées dans MAW Pilot.
+        Rapport établi à partir des données enregistrées dans MAW Pilot by
+        Farouk.
       </footer>
     </div>
   );

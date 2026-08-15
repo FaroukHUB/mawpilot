@@ -116,7 +116,9 @@ async function processReminders(
         title: reminder.title,
         body:
           reminder.body ??
-          (company ? `Rappel concernant ${company}.` : "Rappel MAW Pilot."),
+          (company
+            ? `Rappel concernant ${company}.`
+            : "Rappel MAW Pilot by Farouk."),
         url: reminder.company_id
           ? `/entreprises/${reminder.company_id}`
           : "/dashboard",

@@ -58,7 +58,7 @@ self.addEventListener("fetch", (event) => {
  * Notifications push — c'est ce qui permet d'être prévenu application fermée.
  */
 self.addEventListener("push", (event) => {
-  let payload = { title: "MAW Pilot", body: "", url: "/dashboard" };
+  let payload = { title: "MAW Pilot by Farouk", body: "", url: "/dashboard" };
   try {
     if (event.data) payload = { ...payload, ...event.data.json() };
   } catch {

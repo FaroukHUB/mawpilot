@@ -3,20 +3,21 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 
 import { ServiceWorkerRegistration } from "@/components/layout/service-worker";
+import { BRAND_FULL } from "@/components/layout/wordmark";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "MAW Pilot",
-    template: "%s · MAW Pilot",
+    default: BRAND_FULL,
+    template: `%s · ${BRAND_FULL}`,
   },
   description:
     "Application privée de pilotage d'activité freelance : entreprises, tâches, temps, rapports et assistant IA.",
-  applicationName: "MAW Pilot",
+  applicationName: BRAND_FULL,
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "MAW Pilot",
+    title: BRAND_FULL,
     statusBarStyle: "black-translucent",
   },
   icons: {
