@@ -6,37 +6,47 @@ import { z } from "zod";
 import { loadBudgetSettings } from "@/lib/ai/budget";
 import { computeCost } from "@/lib/ai/pricing";
 import { analyseClientRequest } from "@/lib/client-portal/assistant";
+import { loadAssistantContext } from "@/lib/client-portal/client-data";
 import { getClientAccount } from "@/lib/client-portal/session";
 import { notifyUser } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/actions/companies";
 
 /**
- * Dépôt d'une demande depuis l'espace client connecté.
- * Même traitement que le portail par lien : accusé de réception, classement
- * contre la charte, alerte au prestataire. Aucune date n'est promise ici.
+ * Conversation de l'espace client connecté.
+ *
+ * Le client parle ou écrit ; l'assistant répond, puis classe : une vraie
+ * demande devient une ligne de suivi côté prestataire, une simple question
+ * reste une question. Aucune date n'est jamais promise ici — seul le
+ * prestataire s'engage (voir acceptClientRequest).
  */
 
-const requestSchema = z.object({
-  message: z.string().trim().min(3, "Message trop court.").max(2000),
+const messageSchema = z.object({
+  message: z.string().trim().min(2, "Message trop court.").max(2000),
   is_voice: z.coerce.boolean().default(false),
 });
 
-const MAX_REQUESTS_PER_HOUR = 10;
+const MAX_MESSAGES_PER_HOUR = 20;
 
-export async function submitSpaceRequest(
+export type SpaceReply = {
+  reply: string;
+  /** Vrai si le message a été enregistré comme demande à traiter. */
+  requestCreated: boolean;
+  requestId: string | null;
+  outOfScope: boolean;
+};
+
+export async function sendSpaceMessage(
   input: unknown
-): Promise<ActionResult<{ reply: string; requestId: string }>> {
-  const parsed = requestSchema.safeParse(input);
+): Promise<ActionResult<SpaceReply>> {
+  const parsed = messageSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Demande invalide." };
+    return { error: parsed.error.issues[0]?.message ?? "Message invalide." };
   }
 
   const account = await getClientAccount();
   if (!account) return { error: "Session expirée, reconnectez-vous." };
 
-  const supabase = await createClient();
   const admin = createAdminClient();
 
   // Le propriétaire du dossier : c'est lui qu'on notifie.
@@ -48,19 +58,36 @@ export async function submitSpaceRequest(
   if (!link) return { error: "Compte introuvable." };
 
   const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
-  const { count } = await supabase
-    .from("client_requests")
+  const { count: recent } = await admin
+    .from("client_messages")
     .select("id", { count: "exact", head: true })
     .eq("company_id", account.companyId)
+    .eq("author", "client")
     .gte("created_at", oneHourAgo);
 
-  if ((count ?? 0) >= MAX_REQUESTS_PER_HOUR) {
+  if ((recent ?? 0) >= MAX_MESSAGES_PER_HOUR) {
     return {
-      error: "Trop de demandes envoyées coup sur coup. Merci de patienter.",
+      error:
+        "Vous avez envoyé beaucoup de messages coup sur coup. Reprenons dans un moment.",
     };
   }
 
-  // Contexte et charte, lus avec les droits du propriétaire.
+  // 1. Le message du client est enregistré avant tout traitement : même si
+  //    l'IA échoue, rien n'est perdu.
+  await admin.from("client_messages").insert({
+    user_id: link.owner_user_id,
+    company_id: account.companyId,
+    author: "client",
+    content: parsed.data.message,
+  });
+
+  const { data: history } = await admin
+    .from("client_messages")
+    .select("author, content")
+    .eq("company_id", account.companyId)
+    .order("created_at", { ascending: false })
+    .limit(11);
+
   const { data: settingsRow } = await admin
     .from("client_portal_settings")
     .select("*")
@@ -79,30 +106,7 @@ export async function submitSpaceRequest(
   const quota = settingsRow?.monthly_request_quota ?? 0;
   const quotaReached = quota > 0 && (monthlyCount ?? 0) >= quota;
 
-  const { data: openTasks } = await admin
-    .from("tasks")
-    .select("title, status")
-    .eq("company_id", account.companyId)
-    .neq("status", "archivee")
-    .limit(40);
-
-  const tasks = openTasks ?? [];
-  const overview = {
-    completed: tasks
-      .filter((t) => t.status === "terminee")
-      .slice(0, 10)
-      .map((t) => ({ id: "", title: t.title, project: null, completedOn: null, dueOn: null })),
-    inProgress: tasks
-      .filter((t) => t.status === "en_cours")
-      .map((t) => ({ id: "", title: t.title, project: null, completedOn: null, dueOn: null })),
-    waitingOnClient: tasks
-      .filter((t) => t.status === "en_attente_client")
-      .map((t) => ({ id: "", title: t.title, project: null, completedOn: null, dueOn: null })),
-    upcoming: [],
-    documents: [],
-    reports: [],
-    metrics: [],
-  };
+  const overview = await loadAssistantContext(account.companyId);
 
   const session = {
     tokenId: "",
@@ -142,40 +146,53 @@ export async function submitSpaceRequest(
       session,
       overview,
       message: parsed.data.message,
-      history: [],
+      // Le dernier élément est le message qu'on vient d'enregistrer.
+      history: (history ?? []).slice(1).reverse(),
       quotaReached,
     });
   } catch (error) {
-    console.error("Analyse de demande (espace client) :", error);
+    console.error("Analyse de message (espace client) :", error);
     analysis = {
       reply:
-        "Votre demande est bien enregistrée. Vous recevrez une réponse rapidement.",
+        "Votre message est bien enregistré. Vous recevrez une réponse rapidement.",
       classification: "indeterminee" as const,
       usage: { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 },
     };
   }
 
-  const { data: request, error } = await admin
-    .from("client_requests")
-    .insert({
-      user_id: link.owner_user_id,
-      company_id: account.companyId,
-      contact_name: account.displayName,
-      content: parsed.data.message,
-      is_voice: parsed.data.is_voice,
-      classification: analysis.classification,
-      assistant_reply: analysis.reply,
-      status:
-        quotaReached || analysis.classification === "supplementaire"
-          ? "hors_forfait"
-          : "en_analyse",
-    })
-    .select("id")
-    .single();
+  // 2. Une simple question ne crée pas de ligne de suivi : seules les vraies
+  //    demandes entrent dans la file du prestataire.
+  const isRequest = analysis.classification !== "question";
+  const outOfScope =
+    quotaReached || analysis.classification === "supplementaire";
 
-  if (error || !request) {
-    return { error: "Enregistrement impossible. Réessayez dans un instant." };
+  let requestId: string | null = null;
+  if (isRequest) {
+    const { data: request } = await admin
+      .from("client_requests")
+      .insert({
+        user_id: link.owner_user_id,
+        company_id: account.companyId,
+        contact_name: account.displayName,
+        content: parsed.data.message,
+        is_voice: parsed.data.is_voice,
+        classification: analysis.classification,
+        assistant_reply: analysis.reply,
+        status: outOfScope ? "hors_forfait" : "en_analyse",
+      })
+      .select("id")
+      .single();
+    requestId = request?.id ?? null;
   }
+
+  // 3. Réponse de l'assistant conservée dans le fil.
+  await admin.from("client_messages").insert({
+    user_id: link.owner_user_id,
+    company_id: account.companyId,
+    request_id: requestId,
+    author: "assistant",
+    content: analysis.reply,
+  });
 
   if (analysis.usage.inputTokens > 0) {
     const budget = await loadBudgetSettings(admin, link.owner_user_id);
@@ -193,18 +210,25 @@ export async function submitSpaceRequest(
   }
 
   await notifyUser(admin, link.owner_user_id, {
-    title:
-      quotaReached || analysis.classification === "supplementaire"
-        ? `Demande hors forfait — ${account.companyName}`
-        : `Nouvelle demande — ${account.companyName}`,
+    title: outOfScope
+      ? `Demande hors forfait — ${account.companyName}`
+      : isRequest
+        ? `Nouvelle demande — ${account.companyName}`
+        : `Question client — ${account.companyName}`,
     body: `${account.displayName} : ${parsed.data.message.slice(0, 160)}`,
     url: "/demandes",
-    alwaysEmail:
-      quotaReached || analysis.classification === "supplementaire",
+    alwaysEmail: outOfScope,
   });
 
   revalidatePath("/espace");
   revalidatePath("/demandes");
 
-  return { data: { reply: analysis.reply, requestId: request.id } };
+  return {
+    data: {
+      reply: analysis.reply,
+      requestCreated: requestId !== null,
+      requestId,
+      outOfScope,
+    },
+  };
 }

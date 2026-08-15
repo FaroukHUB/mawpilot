@@ -2,54 +2,73 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
-  BellRing,
-  Building2,
+  BarChart3,
   CheckCircle2,
   FileText,
+  FolderOpen,
+  Hourglass,
+  MessagesSquare,
   Mic,
   Rocket,
-  ShieldCheck,
-  Users,
+  Search,
+  Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "MAW Pilot — Le pilotage d'activité qui se remplit à la voix",
+  title: "MAW Pilot — Votre espace de suivi de projet",
   description:
-    "Tâches, temps, rapports et suivi client : vous parlez, MAW Pilot range. Espace de suivi dédié pour vos clients.",
+    "Suivez l'avancement de votre projet en temps réel, échangez avec un assistant disponible à toute heure, consultez vos comptes rendus, vos résultats de référencement et vos livrables.",
 };
 
+/** Ce que le client trouve derrière la connexion. */
 const FEATURES = [
   {
-    icon: Mic,
-    title: "Vous parlez, il range",
-    body: "« J'ai travaillé une heure trente sur Trust et terminé l'article » : le temps est enregistré, les tâches sont mises à jour. Aucun tableau à remplir.",
+    icon: Sparkles,
+    title: "Un assistant qui vous répond",
+    body: "« Où en est ma page contact ? », « Pouvez-vous ajouter les horaires ? » — à l'écrit ou à la voix, à toute heure. Il connaît votre dossier, vous répond, et transmet ce qui doit l'être.",
+  },
+  {
+    icon: Hourglass,
+    title: "Vous savez ce qu'on attend de vous",
+    body: "Un projet ralentit presque toujours faute d'une réponse. Ce qui bloque de votre côté est affiché en premier, en clair — plus de relances qui se perdent dans les mails.",
+  },
+  {
+    icon: BarChart3,
+    title: "L'avancement, en direct",
+    body: "Une barre de progression par projet, ce qui est terminé, ce qui est en cours, la prochaine échéance. Vous n'avez plus à demander où ça en est : vous le voyez.",
   },
   {
     icon: FileText,
-    title: "Les rapports se préparent seuls",
-    body: "Chaque semaine, le compte rendu est prêt à partir de vos données réelles. Vous relisez, vous partagez sur WhatsApp. Rien n'est inventé.",
+    title: "Des comptes rendus détaillés",
+    body: "Chaque période a son compte rendu : ce qui a été réalisé, les points d'attention, la suite. Écrits à partir du travail réellement effectué, jamais d'un modèle recopié.",
   },
   {
-    icon: BellRing,
-    title: "Il pense à votre place",
-    body: "Briefing du matin, relance quand un client ne répond pas, rappel « vendredi à 15 h ». Les notifications arrivent même application fermée.",
+    icon: Search,
+    title: "Vos résultats, pas des promesses",
+    body: "Positions, trafic, audiences : les chiffres de votre référencement et de vos statistiques sont repris dans vos comptes rendus, avec ce qu'ils veulent dire concrètement.",
   },
   {
-    icon: Users,
-    title: "Vos clients suivent en direct",
-    body: "Chaque client a son espace : ce qui avance, ce qui l'attend, ses livrables. Il y dépose ses demandes, à l'écrit ou à la voix.",
+    icon: FolderOpen,
+    title: "Tous vos livrables au même endroit",
+    body: "Maquettes, documents, exports, liens utiles : disponibles en permanence dans votre espace. Plus de fichier introuvable dans une vieille conversation.",
+  },
+];
+
+/** Le parcours d'une demande, du message au suivi. */
+const STEPS = [
+  {
+    title: "Vous dites ce dont vous avez besoin",
+    body: "Dans votre espace, vous écrivez ou vous dictez. Une phrase suffit.",
   },
   {
-    icon: Building2,
-    title: "Un cockpit par entreprise",
-    body: "Projets, tâches, temps, contacts, documents, accès rapides et historique complet — tout ce qui concerne un client au même endroit.",
+    title: "L'assistant vous répond et transmet",
+    body: "Il accuse réception, reformule, et prévient immédiatement votre prestataire.",
   },
   {
-    icon: ShieldCheck,
-    title: "Vous gardez la main",
-    body: "Chaque action proposée est confirmée par vous avant d'être enregistrée. Aucun message n'est jamais envoyé à un client sans votre accord.",
+    title: "Vous suivez jusqu'au bout",
+    body: "Votre demande apparaît dans votre suivi avec son statut, jusqu'à ce qu'elle soit faite.",
   },
 ];
 
@@ -63,29 +82,30 @@ export default function LandingPage() {
           </span>
           <span className="text-lg font-semibold">MAW Pilot</span>
         </div>
-        <Button asChild variant="outline" size="sm">
+        <Button asChild size="sm">
           <Link href="/login">Se connecter</Link>
         </Button>
       </header>
 
       <main className="flex-1">
-        {/* Accroche */}
+        {/* Accroche — adressée au client. */}
         <section className="mx-auto flex w-full max-w-3xl flex-col items-center gap-6 px-5 py-16 text-center md:py-24">
           <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium">
-            <Mic className="size-3.5 text-primary" aria-hidden />
-            Piloté à la voix
+            <MessagesSquare className="size-3.5 text-primary" aria-hidden />
+            Votre espace de suivi
           </span>
 
           <h1 className="text-4xl font-bold tracking-tight text-balance md:text-5xl">
-            Racontez votre journée.
+            Ne demandez plus où ça en est.
             <br />
-            <span className="text-primary">MAW Pilot remplit le reste.</span>
+            <span className="text-primary">Regardez.</span>
           </h1>
 
           <p className="max-w-xl text-lg text-muted-foreground text-pretty">
-            Le poste de pilotage des freelances qui jonglent entre plusieurs
-            clients. Tâches, temps passé, prestations à facturer, comptes
-            rendus : vous dictez, tout se range derrière.
+            MAW Pilot est l&apos;espace où votre prestataire vous montre son
+            travail au fil de l&apos;eau. Avancement en direct, comptes rendus
+            détaillés, résultats chiffrés, livrables — et un assistant à qui
+            vous pouvez parler quand vous voulez.
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -98,52 +118,95 @@ export default function LandingPage() {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Application privée. Les accès sont créés par l&apos;administrateur —
-            il n&apos;y a pas d&apos;inscription libre.
+            Connectez-vous avec les identifiants transmis par votre prestataire.
+            Il n&apos;y a pas d&apos;inscription : votre accès est créé pour vous.
           </p>
         </section>
 
-        {/* Fonctionnalités */}
+        {/* Ce que le client y trouve. */}
         <section className="border-t bg-muted/30 px-5 py-16 md:py-20">
-          <div className="mx-auto grid w-full max-w-5xl gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map(({ icon: Icon, title, body }) => (
-              <div
-                key={title}
-                className="flex flex-col gap-2 rounded-xl border bg-card p-5"
-              >
-                <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Icon className="size-4" aria-hidden />
-                </span>
-                <h2 className="font-semibold">{title}</h2>
-                <p className="text-sm text-muted-foreground">{body}</p>
-              </div>
-            ))}
+          <div className="mx-auto w-full max-w-5xl">
+            <h2 className="mb-2 text-center text-2xl font-semibold">
+              Ce que vous trouverez dans votre espace
+            </h2>
+            <p className="mx-auto mb-10 max-w-xl text-center text-muted-foreground">
+              Tout ce qui concerne votre projet, réuni à un seul endroit et mis
+              à jour au fur et à mesure du travail.
+            </p>
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {FEATURES.map(({ icon: Icon, title, body }) => (
+                <div
+                  key={title}
+                  className="flex flex-col gap-2 rounded-xl border bg-card p-5"
+                >
+                  <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="size-4" aria-hidden />
+                  </span>
+                  <h3 className="font-semibold">{title}</h3>
+                  <p className="text-sm text-muted-foreground">{body}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* Espace client */}
+        {/* Le parcours d'une demande. */}
         <section className="px-5 py-16 md:py-20">
+          <div className="mx-auto w-full max-w-4xl">
+            <h2 className="mb-2 text-center text-2xl font-semibold">
+              Une demande, trois étapes
+            </h2>
+            <p className="mx-auto mb-10 max-w-xl text-center text-muted-foreground">
+              Plus de mail sans réponse, plus de « je vous avais demandé de… ».
+              Chaque demande est tracée.
+            </p>
+
+            <ol className="grid gap-5 md:grid-cols-3">
+              {STEPS.map((step, index) => (
+                <li
+                  key={step.title}
+                  className="flex flex-col gap-2 rounded-xl border bg-card p-5"
+                >
+                  <span className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                    {index + 1}
+                  </span>
+                  <p className="font-semibold">{step.title}</p>
+                  <p className="text-sm text-muted-foreground">{step.body}</p>
+                </li>
+              ))}
+            </ol>
+
+            <div className="mt-8 flex flex-col items-center gap-2 rounded-xl border bg-card p-5 text-center">
+              <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Mic className="size-4" aria-hidden />
+              </span>
+              <p className="font-semibold">Pas envie d&apos;écrire ?</p>
+              <p className="max-w-lg text-sm text-muted-foreground">
+                Appuyez sur le micro et dictez votre demande. Elle est
+                retranscrite, vous la relisez, vous envoyez.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Réassurance. */}
+        <section className="border-t bg-muted/30 px-5 py-16 md:py-20">
           <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 rounded-2xl border bg-card p-6 md:flex-row md:items-center md:p-10">
             <div className="flex-1">
-              <h2 className="mb-2 text-2xl font-semibold">
-                Vous êtes client ?
+              <h2 className="mb-3 text-2xl font-semibold">
+                Un espace qui n&apos;appartient qu&apos;à vous
               </h2>
-              <p className="text-muted-foreground">
-                Connectez-vous avec les identifiants qui vous ont été
-                transmis. Vous verrez l&apos;avancement de votre projet en
-                temps réel, ce qui attend votre retour, vos livrables et vos
-                comptes rendus — et vous pourrez déposer vos demandes
-                directement, à l&apos;écrit ou en vocal.
-              </p>
-              <ul className="mt-4 flex flex-col gap-1.5 text-sm">
+              <ul className="flex flex-col gap-2 text-sm">
                 {[
-                  "Ce qui a été réalisé, avec les dates",
-                  "Ce qui est en cours et ce qui arrive",
-                  "Vos demandes, suivies une par une",
+                  "Vous ne voyez que votre dossier, jamais celui d'un autre client.",
+                  "L'assistant ne s'engage jamais sur une date à la place de votre prestataire.",
+                  "Rien n'est inventé : les comptes rendus s'appuient sur le travail enregistré.",
+                  "Vous gardez l'historique complet de vos demandes et des réponses.",
                 ].map((item) => (
-                  <li key={item} className="flex items-center gap-2">
+                  <li key={item} className="flex items-start gap-2">
                     <CheckCircle2
-                      className="size-4 shrink-0 text-emerald-600"
+                      className="mt-0.5 size-4 shrink-0 text-emerald-600"
                       aria-hidden
                     />
                     {item}
@@ -162,7 +225,10 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t px-5 py-6 text-center text-xs text-muted-foreground">
-        MAW Pilot — application privée de pilotage d&apos;activité.
+        MAW Pilot — espace de suivi de projet.{" "}
+        <Link href="/login" className="underline hover:text-foreground">
+          Connexion prestataire
+        </Link>
       </footer>
     </div>
   );

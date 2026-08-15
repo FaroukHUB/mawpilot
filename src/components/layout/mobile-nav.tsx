@@ -15,7 +15,9 @@ import {
 } from "lucide-react";
 
 import { logout } from "@/actions/auth";
-import { navigation } from "@/components/layout/nav-items";
+import { navigation, type NavBadges } from "@/components/layout/nav-items";
+import { NotificationBell } from "@/components/layout/notification-bell";
+import type { NotificationRow } from "@/components/notifications/notification-list";
 import { cn } from "@/lib/utils";
 
 /** Onglets principaux de la barre inférieure (mobile). */
@@ -26,7 +28,15 @@ const PRIMARY = [
   { href: "/entreprises", label: "Clients", icon: Building2 },
 ] as const;
 
-export function MobileNav({ userEmail }: { userEmail: string }) {
+export function MobileNav({
+  userEmail,
+  badges,
+  notifications,
+}: {
+  userEmail: string;
+  badges: NavBadges;
+  notifications: NotificationRow[];
+}) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = React.useState(false);
 
@@ -42,20 +52,23 @@ export function MobileNav({ userEmail }: { userEmail: string }) {
           </span>
           <span className="font-semibold">MAW Pilot</span>
         </Link>
-        <button
-          type="button"
-          onClick={() => setMenuOpen((open) => !open)}
-          aria-expanded={menuOpen}
-          aria-controls="menu-mobile"
-          aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
-          className="rounded-md p-1.5 hover:bg-sidebar-accent"
-        >
-          {menuOpen ? (
-            <X className="size-5" aria-hidden />
-          ) : (
-            <Menu className="size-5" aria-hidden />
-          )}
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationBell notifications={notifications} />
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-expanded={menuOpen}
+            aria-controls="menu-mobile"
+            aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            className="rounded-md p-1.5 hover:bg-sidebar-accent"
+          >
+            {menuOpen ? (
+              <X className="size-5" aria-hidden />
+            ) : (
+              <Menu className="size-5" aria-hidden />
+            )}
+          </button>
+        </div>
       </header>
 
       {menuOpen ? (
@@ -65,24 +78,32 @@ export function MobileNav({ userEmail }: { userEmail: string }) {
           className="sticky top-[57px] z-20 border-b bg-sidebar px-2 pb-3 text-sidebar-foreground md:hidden print:hidden"
         >
           <ul className="grid grid-cols-2 gap-1">
-            {navigation.map(({ href, label, icon: Icon }) => (
-              <li key={href}>
-                <Link
-                  href={href}
-                  onClick={() => setMenuOpen(false)}
-                  aria-current={isActive(href) ? "page" : undefined}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
-                    isActive(href)
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent"
-                  )}
-                >
-                  <Icon className="size-4 shrink-0" aria-hidden />
-                  {label}
-                </Link>
-              </li>
-            ))}
+            {navigation.map(({ href, label, icon: Icon, badge }) => {
+              const count = badge ? badges[badge] : 0;
+              return (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    onClick={() => setMenuOpen(false)}
+                    aria-current={isActive(href) ? "page" : undefined}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
+                      isActive(href)
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent"
+                    )}
+                  >
+                    <Icon className="size-4 shrink-0" aria-hidden />
+                    {label}
+                    {count > 0 ? (
+                      <span className="ml-auto flex min-w-5 items-center justify-center rounded-full bg-brand-orange px-1.5 text-[11px] font-semibold text-white">
+                        {count}
+                      </span>
+                    ) : null}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
           <div className="mt-2 border-t border-sidebar-border pt-2">
             <p className="truncate px-3 text-xs text-sidebar-foreground/60">

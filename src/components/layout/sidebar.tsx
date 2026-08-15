@@ -5,10 +5,20 @@ import { usePathname } from "next/navigation";
 import { LogOut, Rocket } from "lucide-react";
 
 import { logout } from "@/actions/auth";
-import { navigation } from "@/components/layout/nav-items";
+import { navigation, type NavBadges } from "@/components/layout/nav-items";
+import { NotificationBell } from "@/components/layout/notification-bell";
+import type { NotificationRow } from "@/components/notifications/notification-list";
 import { cn } from "@/lib/utils";
 
-export function Sidebar({ userEmail }: { userEmail: string }) {
+export function Sidebar({
+  userEmail,
+  badges,
+  notifications,
+}: {
+  userEmail: string;
+  badges: NavBadges;
+  notifications: NotificationRow[];
+}) {
   const pathname = usePathname();
 
   return (
@@ -18,11 +28,13 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
           <Rocket className="size-4" aria-hidden />
         </span>
         <span className="text-lg font-semibold">MAW Pilot</span>
+        <NotificationBell notifications={notifications} className="ml-auto" />
       </div>
       <nav aria-label="Navigation principale" className="flex-1 overflow-y-auto px-2">
         <ul className="flex flex-col gap-1">
-          {navigation.map(({ href, label, icon: Icon }) => {
+          {navigation.map(({ href, label, icon: Icon, badge }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
+            const count = badge ? badges[badge] : 0;
             return (
               <li key={href}>
                 <Link
@@ -37,6 +49,11 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
                 >
                   <Icon className="size-4 shrink-0" aria-hidden />
                   {label}
+                  {count > 0 ? (
+                    <span className="ml-auto flex min-w-5 items-center justify-center rounded-full bg-brand-orange px-1.5 text-[11px] font-semibold text-white">
+                      {count}
+                    </span>
+                  ) : null}
                 </Link>
               </li>
             );
