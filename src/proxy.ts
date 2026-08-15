@@ -45,6 +45,8 @@ export default async function proxy(request: NextRequest) {
     // La validation du jeton est faite par la page et la route elles-mêmes.
     pathname.startsWith("/client/") ||
     pathname.startsWith("/api/client/") ||
+    // L'espace client a sa propre vérification de rôle dans son layout.
+    pathname.startsWith("/espace") ||
     // Planificateur : authentifié par secret partagé.
     pathname.startsWith("/api/cron/");
 

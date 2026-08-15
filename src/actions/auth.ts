@@ -23,11 +23,26 @@ export async function login(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data: session, error } = await supabase.auth.signInWithPassword(
+    parsed.data
+  );
 
   if (error) {
     // Message volontairement générique : ne pas révéler si l'email existe.
     return { error: "Email ou mot de passe incorrect." };
+  }
+
+  // Un compte rattaché à une entreprise est un client : il va dans son espace,
+  // pas dans le tableau de bord de pilotage.
+  const { data: clientUser } = await supabase
+    .from("client_users")
+    .select("id")
+    .eq("auth_user_id", session.user.id)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (clientUser) {
+    redirect("/espace");
   }
 
   const suivant = formData.get("suivant");

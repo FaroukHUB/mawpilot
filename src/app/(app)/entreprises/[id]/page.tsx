@@ -13,6 +13,10 @@ import {
   type DocumentRow,
 } from "@/components/documents/documents-panel";
 import {
+  ClientAccountsPanel,
+  type ClientAccountRow,
+} from "@/components/client-portal/client-accounts-panel";
+import {
   PortalSettingsPanel,
   type PortalSettingsRow,
   type PortalTokenRow,
@@ -107,6 +111,7 @@ export default async function CompanyPage({
     { data: portalTokens },
     { data: portalSettings },
     { data: reportSchedule },
+    { data: clientAccounts },
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -181,6 +186,11 @@ export default async function CompanyPage({
       .select()
       .eq("company_id", id)
       .maybeSingle(),
+    supabase
+      .from("client_users")
+      .select("id, display_name, is_active, last_seen_at, created_at")
+      .eq("company_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   const projectList = (projects ?? []) as Project[];
@@ -554,6 +564,14 @@ export default async function CompanyPage({
       ) : null}
 
       {tab === "portail" ? (
+        <div className="flex flex-col gap-4">
+        <ClientAccountsPanel
+          companyId={company.id}
+          accounts={(clientAccounts ?? []) as ClientAccountRow[]}
+          contacts={((contacts ?? []) as ContactRow[])
+            .filter((c) => c.is_active)
+            .map((c) => ({ id: c.id, name: c.name }))}
+        />
         <PortalSettingsPanel
           companyId={company.id}
           companyName={company.name}
@@ -563,6 +581,7 @@ export default async function CompanyPage({
             .filter((c) => c.is_active)
             .map((c) => ({ id: c.id, name: c.name }))}
         />
+        </div>
       ) : null}
 
       {tab === "memoire" ? (

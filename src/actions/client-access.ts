@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { logActivity } from "@/lib/activity";
+import { getAppBaseUrl } from "@/lib/client-portal/base-url";
 import { buildPortalUrl, generateToken } from "@/lib/client-portal/tokens";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/actions/companies";
@@ -82,9 +83,13 @@ export async function createPortalLink(
 
   revalidatePath(`/entreprises/${company.id}`);
 
+  // L'URL est déduite du domaine réel de la requête : un lien ne peut plus
+  // pointer vers un domaine périmé si une variable d'environnement traîne.
+  const baseUrl = await getAppBaseUrl();
+
   // Le lien complet n'est affiché QU'ICI, une seule fois : il n'est jamais
   // stocké en clair et ne pourra pas être réaffiché ensuite.
-  return { data: { url: buildPortalUrl(token.fullToken) } };
+  return { data: { url: buildPortalUrl(token.fullToken, baseUrl) } };
 }
 
 export async function revokePortalLink(
